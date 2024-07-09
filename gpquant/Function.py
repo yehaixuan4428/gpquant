@@ -482,25 +482,25 @@ ts_ema2 = Function(function=_ts_ema, name="ts_ema", arity=2, is_ts=1)
 ts_dema2 = Function(function=_ts_dema, name="ts_dema", arity=2, is_ts=1)
 ts_kama4 = Function(function=_ts_kama, name="ts_kama", arity=4, is_ts=3)
 ts_AROONOSC3 = Function(
-    function=_ts_AROONOSC, name="ts_AROONOSC", arity=3, is_ts=1, fixed_params=["H", "L"]
+    function=_ts_AROONOSC, name="ts_AROONOSC", arity=3, is_ts=1, fixed_params=["high", "L"]
 )
 ts_WR4 = Function(
-    function=_ts_WR, name="ts_WR", arity=4, is_ts=1, fixed_params=["H", "L", "C"]
+    function=_ts_WR, name="ts_WR", arity=4, is_ts=1, fixed_params=["high", "L", "C"]
 )
 ts_CCI4 = Function(
-    function=_ts_CCI, name="ts_CCI", arity=4, is_ts=1, fixed_params=["H", "L", "C"]
+    function=_ts_CCI, name="ts_CCI", arity=4, is_ts=1, fixed_params=["high", "L", "C"]
 )
 ts_ATR4 = Function(
-    function=_ts_ATR, name="ts_ATR", arity=4, is_ts=1, fixed_params=["H", "L", "C"]
+    function=_ts_ATR, name="ts_ATR", arity=4, is_ts=1, fixed_params=["high", "L", "C"]
 )
 ts_NATR4 = Function(
-    function=_ts_NATR, name="ts_NATR", arity=4, is_ts=1, fixed_params=["H", "L", "C"]
+    function=_ts_NATR, name="ts_NATR", arity=4, is_ts=1, fixed_params=["high", "L", "C"]
 )
 ts_ADX4 = Function(
-    function=_ts_ADX, name="ts_ADX", arity=4, is_ts=1, fixed_params=["H", "L", "C"]
+    function=_ts_ADX, name="ts_ADX", arity=4, is_ts=1, fixed_params=["high", "L", "C"]
 )
 ts_MFI5 = Function(
-    function=_ts_MFI, name="ts_MFI", arity=5, is_ts=1, fixed_params=["H", "L", "C", "V"]
+    function=_ts_MFI, name="ts_MFI", arity=5, is_ts=1, fixed_params=["high", "L", "C", "V"]
 )
 
 

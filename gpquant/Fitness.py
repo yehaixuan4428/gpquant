@@ -44,12 +44,17 @@ def _direction_accuracy(close: pd.Series, factor) -> float:
     return np.sum((close_direction == factor_direction)) / len(factor)
 
 
+def _sectional_ic(y: pd.Series, y_pred: pd.Series) -> float:
+    return y.groupby(level=0).corr(y_pred, method="spearman").mean()
+
+
 # fitness indicator
 ann_return = Fitness(_ann_return, greater_is_better=True)
 sharpe_ratio = Fitness(_sharpe_ratio, greater_is_better=True)
 mean_absolute_error = Fitness(_mean_absolute_error, greater_is_better=False)
 mean_square_error = Fitness(_mean_square_error, greater_is_better=False)
 direction_accuracy = Fitness(_direction_accuracy, greater_is_better=True)
+sectional_ic = Fitness(_sectional_ic, greater_is_better=True)
 
 
 fitness_map = {
@@ -58,4 +63,5 @@ fitness_map = {
     "mean absolute error": mean_absolute_error,
     "mean square error": mean_square_error,
     "direction accuracy": direction_accuracy,
+    "sectional ic": sectional_ic,
 }

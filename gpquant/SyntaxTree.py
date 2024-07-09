@@ -233,7 +233,7 @@ class SyntaxTree:
         )
         if self.transformer is not None:
             outcome = self.transformer(X, outcome, **self.transformer_kwargs)
-        return outcome
+        return pd.Series(outcome, index=X.index)
 
     def fitness(self, X: pd.DataFrame, benchmark: pd.Series) -> float:
         """

@@ -360,7 +360,8 @@ def _ts_CCI(high, low, close, d: int):
 
 def _ts_ATR(high, low, close, d: int):
     """Average True Range: ts_mean(TR, d)
-    TR (True Range) = max(High - Low, abs(High - previous Close), abs(Low - previous Close))"""
+    TR (True Range) = max(High - Low, abs(High - previous Close), abs(Low - previous Close))
+    """
     TR = pd.Series(np.maximum(high - low, high - close.shift(), low - close.shift()))
     return _ts_mean(TR, d)
 
@@ -482,25 +483,53 @@ ts_ema2 = Function(function=_ts_ema, name="ts_ema", arity=2, is_ts=1)
 ts_dema2 = Function(function=_ts_dema, name="ts_dema", arity=2, is_ts=1)
 ts_kama4 = Function(function=_ts_kama, name="ts_kama", arity=4, is_ts=3)
 ts_AROONOSC3 = Function(
-    function=_ts_AROONOSC, name="ts_AROONOSC", arity=3, is_ts=1, fixed_params=["high", "L"]
+    function=_ts_AROONOSC,
+    name="ts_AROONOSC",
+    arity=3,
+    is_ts=1,
+    fixed_params=["high", "low"],
 )
 ts_WR4 = Function(
-    function=_ts_WR, name="ts_WR", arity=4, is_ts=1, fixed_params=["high", "L", "C"]
+    function=_ts_WR,
+    name="ts_WR",
+    arity=4,
+    is_ts=1,
+    fixed_params=["high", "low", "close"],
 )
 ts_CCI4 = Function(
-    function=_ts_CCI, name="ts_CCI", arity=4, is_ts=1, fixed_params=["high", "L", "C"]
+    function=_ts_CCI,
+    name="ts_CCI",
+    arity=4,
+    is_ts=1,
+    fixed_params=["high", "low", "close"],
 )
 ts_ATR4 = Function(
-    function=_ts_ATR, name="ts_ATR", arity=4, is_ts=1, fixed_params=["high", "L", "C"]
+    function=_ts_ATR,
+    name="ts_ATR",
+    arity=4,
+    is_ts=1,
+    fixed_params=["high", "low", "close"],
 )
 ts_NATR4 = Function(
-    function=_ts_NATR, name="ts_NATR", arity=4, is_ts=1, fixed_params=["high", "L", "C"]
+    function=_ts_NATR,
+    name="ts_NATR",
+    arity=4,
+    is_ts=1,
+    fixed_params=["high", "low", "close"],
 )
 ts_ADX4 = Function(
-    function=_ts_ADX, name="ts_ADX", arity=4, is_ts=1, fixed_params=["high", "L", "C"]
+    function=_ts_ADX,
+    name="ts_ADX",
+    arity=4,
+    is_ts=1,
+    fixed_params=["high", "low", "close"],
 )
 ts_MFI5 = Function(
-    function=_ts_MFI, name="ts_MFI", arity=5, is_ts=1, fixed_params=["high", "L", "C", "V"]
+    function=_ts_MFI,
+    name="ts_MFI",
+    arity=5,
+    is_ts=1,
+    fixed_params=["high", "low", "close", "volume"],
 )
 
 

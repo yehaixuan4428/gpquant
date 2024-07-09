@@ -1,7 +1,11 @@
 import pandas as pd
 from gpquant.SymbolicRegressor import SymbolicRegressor
+from factor_processors.data_loader import DataLoader
+import rqdatac
+import os
 
-if __name__ == "__main__":
+
+def original_test():
     file_path = "data.csv"
     df = pd.read_csv(file_path, parse_dates=["dt"])
     slippage = 0.001
@@ -41,3 +45,22 @@ if __name__ == "__main__":
 
     sr.fit(df.iloc[:400], df["C"].iloc[:400])
     print(sr.score(df.iloc[400:800], df["C"].iloc[400:800]))
+
+
+def get_data():
+    loader = DataLoader(n_cores=4)
+    data = (
+        loader.get_stock_price_1d(
+            pd.to_datetime('20240601'), pd.to_datetime('20240705')
+        )
+        .swaplevel()
+        .sort_index()
+    )
+    data = data.groupby(level=0).tail(100)
+    return data
+
+
+if __name__ == "__main__":
+    rqdatac.init(os.environ['RQ_URI'])
+    data = get_data()
+    print(data)

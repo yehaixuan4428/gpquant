@@ -4,6 +4,7 @@ from gpquant.Function import function_map
 from factor_processors.data_loader import DataLoader
 import rqdatac
 import os
+import numpy as np
 
 
 def original_test():
@@ -102,17 +103,35 @@ def test_fit(data):
     dates = data.index.get_level_values(0).unique()
     train_dates = dates[: int(0.8 * len(dates))]
     test_dates = dates[int(0.8 * len(dates)) :]
-    train_data = data.loc[train_dates]
-    test_data = data.loc[test_dates]
+    train_data = data.loc[train_dates].sort_index()
+    test_data = data.loc[test_dates].sort_index()
 
     sr.fit(train_data, train_data["close"])
     print(sr.score(test_data, test_data["close"]))
 
 
 if __name__ == "__main__":
-    rqdatac.init()
-    data = get_data(online=True)
-    test_fit(data)
+    # rqdatac.init()
+    # data = get_data(online=True)
+    # data.to_pickle("data.pkl")
+    data = pd.read_pickle("data.pkl")
+    # print(data["close"].rolling(10).cov(data["open"]))
+
+    # print(
+    #     data["close"]
+    #     .groupby(level=1, group_keys=False)
+    #     .apply(lambda x: x.rolling(10).apply(lambda y: y.ewm(alpha=0.1).mean()))
+    # )
+    x1 = data["close"]
+
+    # volatility = volatility.groupby(level=1).rolling(d, int(d / 2)).sum()
+    # print(data["close"].groupby(level=1).apply(lambda x: tb.KAMA(x, 10)))
+    d = 10
+
+    # print(data["close"].groupby(level=1).apply(lambda x: EMA(x, 10, 0.1)))
+    print(x1.groupby(level=1).shift())
+
+    # test_fit(data)
     # rqdatac.init(os.environ["RQ_URI"])
     # data = get_data(online = False)
     # print(data["close"].groupby(level=0).corr(data["open"]))

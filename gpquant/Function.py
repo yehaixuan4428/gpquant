@@ -2,6 +2,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
+import talib as ta
 
 warnings.filterwarnings("ignore")  # prevent reporting 'All-NaN slice encountered'
 
@@ -25,14 +26,16 @@ class Function:
 def __rolling(x1: pd.Series, d: int, function=None, **kwargs) -> np.ndarray:
     """auxiliary function, rolling more effectively than apply"""
     incomplete_w = np.lib.stride_tricks.sliding_window_view(x1.values, d)[..., ::-1]
-    window = pd.DataFrame(np.vstack((np.full([d - 1, d], np.nan), incomplete_w)))
+    window = pd.DataFrame(
+        np.vstack((np.full([d - 1, d], np.nan), incomplete_w)), index=x1.index
+    )
     if function is None:  # just window
         return window
     else:
         result = function(window, **kwargs)  # add other arguments needed in function
         for i in range(d - 1):
             result[i] = np.nan
-        return result
+        return pd.Series(result, index = x1.index)
 
 
 def __scalar_ema(window: pd.DataFrame, alpha: float) -> np.ndarray:
@@ -153,17 +156,22 @@ def _if_cond_then_else(x1, x2, x3, x4):
 
 def _ts_delay(x1, d: int):
     """x1 d datetimes ago"""
-    return pd.Series(x1).shift(d).values
+    # return pd.Series(x1).shift(d).values
+    return pd.Series(x1).groupby(level=1, group_keys=False).shift(d)
 
 
 def _ts_delta(x1, d: int):
     """difference between x1 and x1 d datetimes ago"""
-    return x1 - pd.Series(x1).shift(d).values
+    # return x1 - pd.Series(x1).shift(d).values
+    return pd.Series(x1).groupby(level=1, group_keys=False).diff(d)
 
 
 def _ts_pct_change(x1, d: int):
     """percentage change of x1 in the last d datetimes"""
-    return _div(_ts_delta(x1, d), x1) * np.sign(x1)
+    # return _div(_ts_delta(x1, d), x1) * np.sign(x1)
+    return (
+        pd.Series(x1).groupby(level=1, group_keys=False).pct_change(d, fill_method=None)
+    )
 
 
 def _ts_mean_return(x1, d: int):
@@ -173,52 +181,97 @@ def _ts_mean_return(x1, d: int):
 
 def _ts_max(x1, d: int):
     """maximum x1 in the last d datetimes"""
-    return pd.Series(x1).rolling(d, min_periods=int(d / 2)).max().values
+    # return pd.Series(x1).rolling(d, min_periods=int(d / 2)).max().values
+    return (
+        pd.Series(x1)
+        .groupby(level=1, group_keys=False)
+        .apply(lambda x: x.rolling(d, min_periods=int(d / 2)).max())
+    )
 
 
 def _ts_min(x1, d: int):
     """minimum x1 in the last d datetimes"""
-    return pd.Series(x1).rolling(d, min_periods=int(d / 2)).min().values
+    # return pd.Series(x1).rolling(d, min_periods=int(d / 2)).min().values
+    return (
+        pd.Series(x1)
+        .groupby(level=1, group_keys=False)
+        .apply(lambda x: x.rolling(d, min_periods=int(d / 2)).min())
+    )
 
 
 def _ts_sum(x1, d: int):
     """moving sum"""
-    return pd.Series(x1).rolling(d, min_periods=int(d / 2)).sum().values
+    # return pd.Series(x1).rolling(d, min_periods=int(d / 2)).sum().values
+    return (
+        pd.Series(x1)
+        .groupby(level=1, group_keys=False)
+        .apply(lambda x: x.rolling(d, min_periods=int(d / 2)).sum())
+    )
 
 
 def _ts_product(x1, d: int):
     """moving product"""
-    return pd.Series(np.exp(_log(x1))).rolling(d, min_periods=int(d / 2)).sum().values
+    # return pd.Series(np.exp(_log(x1))).rolling(d, min_periods=int(d / 2)).sum().values
+    return (
+        pd.Series(np.exp(_log(x1)))
+        .groupby(level=1, group_keys=False)
+        .apply(lambda x: x.rolling(d, min_periods=int(d / 2)).sum())
+    )
 
 
 def _ts_mean(x1, d: int):
     """moving average"""
-    return pd.Series(x1).rolling(d, min_periods=int(d / 2)).mean().values
+    # return pd.Series(x1).rolling(d, min_periods=int(d / 2)).mean().values
+    return (
+        pd.Series(x1)
+        .groupby(level=1, group_keys=False)
+        .apply(lambda x: x.rolling(d, min_periods=int(d / 2)).mean())
+    )
 
 
 def _ts_std(x1, d: int):
     """moving standard deviation"""
-    return pd.Series(x1).rolling(d, min_periods=int(d / 2)).std().values
+    # return pd.Series(x1).rolling(d, min_periods=int(d / 2)).std().values
+    return (
+        pd.Series(x1)
+        .groupby(level=1, group_keys=False)
+        .apply(lambda x: x.rolling(d, min_periods=int(d / 2)).std())
+    )
 
 
 def _ts_median(x1, d: int):
     """moving median"""
-    return pd.Series(x1).rolling(d, min_periods=int(d / 2)).median().values
+    # return pd.Series(x1).rolling(d, min_periods=int(d / 2)).median().values
+    return (
+        pd.Series(x1)
+        .groupby(level=1, group_keys=False)
+        .apply(lambda x: x.rolling(d, min_periods=int(d / 2)).std())
+    )
 
 
 def _ts_midpoint(x1, d: int):
     """moving midpoint: (ts_max + ts_min) / 2"""
-    return _ts_max(x1, d) + _ts_min(x1, d)
+    return (_ts_max(x1, d) + _ts_min(x1, d)) / 2.0
 
 
 def _ts_skew(x1, d: int):
     """moving skewness"""
-    return pd.Series(x1).rolling(d, min_periods=int(d / 2)).skew().values
+    # return pd.Series(x1).rolling(d, min_periods=int(d / 2)).skew().values
+    return (
+        pd.Series(x1)
+        .groupby(level=1, group_keys=False)
+        .apply(lambda x: x.rolling(d, min_periods=int(d / 2)).skew())
+    )
 
 
 def _ts_kurt(x1, d: int):
     """moving kurtosis"""
-    return pd.Series(x1).rolling(d, min_periods=int(d / 2)).kurt().values
+    # return pd.Series(x1).rolling(d, min_periods=int(d / 2)).kurt().values
+    return (
+        pd.Series(x1)
+        .groupby(level=1, group_keys=False)
+        .apply(lambda x: x.rolling(d, min_periods=int(d / 2)).kurt())
+    )
 
 
 def _ts_inverse_cv(x1, d: int):
@@ -228,22 +281,42 @@ def _ts_inverse_cv(x1, d: int):
 
 def _ts_cov(x1, x2, d: int):
     """moving covariance of x1 and x2"""
-    return pd.Series(x1).rolling(d, min_periods=int(d / 2)).cov(pd.Series(x2)).values
+
+    # return pd.Series(x1).rolling(d, min_periods=int(d / 2)).cov(pd.Series(x2)).values
+    def func(x, d):
+        return x["x1"].rolling(d, min_periods=int(d / 2)).cov(x["x2"])
+
+    x1 = x1.to_frame("x1")
+    x1["x2"] = x2
+    return (
+        x1.groupby(level=1, group_keys=False).apply(lambda x: func(x, d)).sort_index()
+    )
 
 
 def _ts_corr(x1, x2, d: int):
     """moving correlation coefficient of x1 and x2"""
-    return pd.Series(x1).rolling(d, min_periods=int(d / 2)).corr(pd.Series(x2)).values
+
+    # return pd.Series(x1).rolling(d, min_periods=int(d / 2)).corr(pd.Series(x2)).values
+    def func(x, d):
+        return x["x1"].rolling(d, min_periods=int(d / 2)).corr(x["x2"])
+
+    x1 = pd.Series(x1).to_frame("x1")
+    x1["x2"] = pd.Series(x2)
+    return (
+        x1.groupby(level=1, group_keys=False).apply(lambda x: func(x, d)).sort_index()
+    )
 
 
 def _ts_autocorr(x1, d: int, i: int):
     """moving autocorrelation coefficient between x and x lag i period"""
-    return (
-        pd.Series(x1)
-        .rolling(d, min_periods=int(d / 2))
-        .corr(pd.Series(x1).shift(i))
-        .values
-    )
+    # return (
+    #     pd.Series(x1)
+    #     .rolling(d, min_periods=int(d / 2))
+    #     .corr(pd.Series(x1).shift(i))
+    #     .values
+    # )
+    x2 = _ts_delay(x1, i)
+    return _ts_corr(x1, x2, d)
 
 
 def _ts_maxmin(x1, d: int):
@@ -264,7 +337,7 @@ def _ts_regression_beta(x1, x2, d: int):
 
 def _ts_linear_slope(x1, d: int):
     """slope of regression x1 in the last d datetimes onto (1, 2, ..., d)"""
-    x2 = np.arange(len(x1)) + 1
+    x2 = pd.Series(np.arange(len(x1)) + 1, index=x1.index)
     return _div(_ts_cov(x1, x2, d), _ts_std(x2, d) ** 2)
 
 
@@ -275,12 +348,28 @@ def _ts_linear_intercept(x1, d: int):
 
 def _ts_argmax(x1, d: int):
     """position of maximum x1 in the last d datetimes"""
-    return pd.Series(x1).rolling(d).apply(np.argmax, engine="numba", raw=True).values
+    # return pd.Series(x1).rolling(d).apply(np.argmax, engine="numba", raw=True).values
+    return (
+        pd.Series(x1)
+        .groupby(level=1)
+        .rolling(d, min_periods=int(d / 2))
+        .apply(np.argmax, raw=True)
+        .droplevel(0)
+        .sort_index()
+    )
 
 
 def _ts_argmin(x1, d: int):
     """position of minimum x1 in the last d datetimes"""
-    return pd.Series(x1).rolling(d).apply(np.argmin, engine="numba", raw=True).values
+    # return pd.Series(x1).rolling(d).apply(np.argmin, engine="numba", raw=True).values
+    return (
+        pd.Series(x1)
+        .groupby(level=1)
+        .rolling(d, min_periods=int(d / 2))
+        .apply(np.argmin, raw=True)
+        .droplevel(0)
+        .sort_index()
+    )
 
 
 def _ts_argmaxmin(x1, d: int):
@@ -290,17 +379,27 @@ def _ts_argmaxmin(x1, d: int):
 
 def _ts_rank(x1, d: int):
     """moving quantile of current x1"""
-    arr_window = __rolling(pd.Series(x1), d).values
-    rank = (arr_window[..., -1:] >= arr_window).sum(axis=1) / d
-    for i in range(d - 1):
-        rank[i] = np.nan
-    return rank
+    # arr_window = __rolling(pd.Series(x1), d).values
+    # rank = (arr_window[..., -1:] >= arr_window).sum(axis=1) / d
+    # for i in range(d - 1):
+    #     rank[i] = np.nan
+    # return rank
+    return (
+        pd.Series(x1)
+        .groupby(level=1)
+        .rolling(d, min_periods=int(d / 2))
+        .rank(pct=True)
+        .droplevel(0)
+        .sort_index()
+    )
+
 
 
 def _ts_ema(x1, d: int):
     """exponential moving average (EMA)"""
     alpha = 2 / (d + 1)
-    return __rolling(pd.Series(x1), d, function=__scalar_ema, alpha=alpha)
+    # return __rolling(pd.Series(x1), d, function=__scalar_ema, alpha=alpha)
+    return x1.groupby(level = 1).apply(lambda x:__rolling(x, d, function=__scalar_ema, alpha=alpha))
 
 
 def _ts_dema(x1, d: int):
@@ -321,18 +420,20 @@ def _ts_kama(x1, d1: int, d2: int, d3: int):
     Volatility_{t,d} = sum(abs(x1 - x1 1 datetimes ago)
     4) d is lag period, f is fastest smoothing constant, s is slowest smoothing constant
     d = d1, f = 1 / (1 + d2), s = 1 / (1 + d3)"""
-    d, f, s = (
-        d1,
-        1 / (1 + min(d2, d3)),
-        1 / (1 + max(d2, d3)),
-    )  # f should greater than s
-    change = np.abs(x1 - pd.Series(x1).shift(d))
-    volatility = (
-        pd.Series(np.abs(x1 - pd.Series(x1).shift())).rolling(d, int(d / 2)).sum()
-    )
-    ER = _div(change, volatility)
-    SC = (ER * f + (1 - ER) * s) ** 2
-    return __rolling(pd.Series(x1), d, function=__scalar_ema, alpha=SC)
+    def func(x1, d1, d2, d3):
+        d, f, s = (
+            d1,
+            1 / (1 + min(d2, d3)),
+            1 / (1 + max(d2, d3)),
+        )  # f should greater than s
+        change = np.abs(x1 - pd.Series(x1).shift(d))
+        volatility = (
+            pd.Series(np.abs(x1 - pd.Series(x1).shift())).rolling(d, int(d / 2)).sum()
+        )
+        ER = _div(change, volatility)
+        SC = (ER * f + (1 - ER) * s) ** 2
+        return __rolling(pd.Series(x1), d, function=__scalar_ema, alpha=SC)
+    return pd.Series(x1).groupby(level = 1).apply(lambda x:func(x, d1, d2, d3))
 
 
 def _ts_AROONOSC(high, low, d: int):
@@ -362,7 +463,7 @@ def _ts_ATR(high, low, close, d: int):
     """Average True Range: ts_mean(TR, d)
     TR (True Range) = max(High - Low, abs(High - previous Close), abs(Low - previous Close))
     """
-    TR = pd.Series(np.maximum(high - low, high - close.shift(), low - close.shift()))
+    TR = pd.Series(np.maximum(high - low, high - close.groupby(level = 1).shift(), low - close.groupby(level = 1).shift()))
     return _ts_mean(TR, d)
 
 
@@ -379,8 +480,8 @@ def _ts_ADX(high, low, close, d: int):
     +DM (Directional Movement) = High - previous High
     -DM (Directional Movement) = Low - previous Low"""
     ATR = _ts_ATR(high, low, close, d)
-    pDI = _div(_ts_mean(high - high.shift(), d), ATR)
-    nDI = _div(_ts_mean(low - low.shift(), d), ATR)
+    pDI = _div(_ts_mean(high - high.groupby(level = 1).shift(), d), ATR)
+    nDI = _div(_ts_mean(low - low.groupby(level=1).shift(), d), ATR)
     DX = _div(pd.Series(np.abs(pDI - nDI)), pd.Series(np.abs(pDI + nDI))) * 100
     return _ts_mean(DX, d)
 
@@ -393,7 +494,7 @@ def _ts_MFI(high, low, close, volume, d: int):
     RMF (Raw Money Flow) = TP * Volume
     TP (Typical Price) = (High + Low + Close) / 3"""
     TP = (high + low + close) / 3
-    pn = TP - TP.shift()
+    pn = TP - TP.groupby(level = 1).shift()
     RMF = TP * volume
     PMF = _clear_by_cond(pn, 0, RMF)
     NMF = _clear_by_cond(0, pn, RMF)

@@ -270,13 +270,18 @@ def test_fit(data):
 
     sr.fit(train_data, train_data["close"])
     print(sr.score(test_data, test_data["close"]))
+def test_tree():
+    from gpquant.SyntaxTree import SyntaxTree
+    function_set = list(function_map.values())
+    variable_set=["open", "high", "low", "close", "volume"]
+    tree = SyntaxTree(id = 0, init_dept = 3, init_method = 'half and half', function_set = function_set, variable_set=variable_set)
 
 
 if __name__ == "__main__":
     # rqdatac.init()
     # data = get_data(online=True)
     # data.to_pickle("data.pkl")
-    data = pd.read_pickle("data.pkl")
+    # data = pd.read_pickle("data.pkl")
 
     # test_functions(data)
-    test_fit(data)
+    # test_fit(data)

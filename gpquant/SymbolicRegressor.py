@@ -8,6 +8,7 @@ from .Backtester import backtester_map
 from .Fitness import fitness_map
 from .Function import function_map
 from .SyntaxTree import SyntaxTree
+from tqdm import tqdm
 
 
 class SymbolicRegressor:
@@ -129,9 +130,11 @@ class SymbolicRegressor:
         print(f"best fitness: {self.best_fitness}")
 
     def fit(self, X: pd.DataFrame, y: pd.Series) -> None:
+        print("Build init trees...")
         self.__build()
         for i in range(self.generations):
-            self.fitness = np.array([tree.fitness(X, y) for tree in self.trees])
+            print(f"Calculate generation {i}...")
+            self.fitness = np.array([tree.fitness(X, y) for tree in tqdm(self.trees)])
             self.best_estimator = self.trees[
                 np.nanargmax(self.metric.sign * self.fitness)
             ]

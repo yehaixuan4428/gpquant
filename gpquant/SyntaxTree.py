@@ -228,9 +228,13 @@ class SyntaxTree:
         Execute the program according to X
         @param X: training data
         """
-        outcome = np.hstack(
-            [np.full(self.ttl_shift, np.nan), self.nodes[0](X)[self.ttl_shift :]]
-        )
+        # outcome = np.hstack(
+        #     [np.full(self.ttl_shift, np.nan), self.nodes[0](X)[self.ttl_shift :]]
+        # )
+        outcome = self.nodes[0](X)
+        if not isinstance(outcome, pd.Series):
+            outcome = pd.Series(np.nan, X.index)
+
         if self.transformer is not None:
             outcome = self.transformer(X, outcome, **self.transformer_kwargs)
         return pd.Series(outcome, index=X.index)

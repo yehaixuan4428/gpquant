@@ -270,11 +270,23 @@ def test_fit(data):
 
     sr.fit(train_data, train_data["close"])
     print(sr.score(test_data, test_data["close"]))
+
+
 def test_tree():
     from gpquant.SyntaxTree import SyntaxTree
+
     function_set = list(function_map.values())
-    variable_set=["open", "high", "low", "close", "volume"]
-    tree = SyntaxTree(id = 0, init_dept = 3, init_method = 'half and half', function_set = function_set, variable_set=variable_set)
+    variable_set = ["open", "high", "low", "close", "volume"]
+    tree = SyntaxTree(
+        id=0,
+        init_dept=3,
+        init_method="half and half",
+        function_set=function_set,
+        variable_set=variable_set,
+        const_range=(1, 5),
+        ts_const_range=(1, 5),
+    )
+    print(tree)
 
 
 def test_tree():
@@ -305,5 +317,4 @@ if __name__ == "__main__":
 
     # test_functions(data)
     # test_fit(data)
-
     test_tree()

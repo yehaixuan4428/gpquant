@@ -110,28 +110,40 @@ def test_fit(data):
     print(sr.score(test_data, test_data["close"]))
 
 
+def test_functions(data):
+    from gpquant.Function import _clear_by_cond
+
+    print(_clear_by_cond(data['close'], data['open'], data['high']))
+
+    from gpquant.Function import _if_then_else
+
+    print(_if_then_else(data['close'], data['open'], data['high']))
+
+    from gpquant.Function import _if_cond_then_else
+
+    print(_if_cond_then_else(data['close'], data['open'], data['high'], data['low']))
+
+    from gpquant.Function import _ts_delay
+
+    print(_ts_delay(data['close'], 3))
+
+    from gpquant.Function import _ts_delta
+
+    print(_ts_delta(data['close'], 3))
+
+    from gpquant.Function import _ts_pct_change
+
+    print(_ts_pct_change(data['close'], 3))
+
+    from gpquant.Function import _ts_mean_return
+
+    print(_ts_mean_return(data['close'], 3))
+
+
 if __name__ == "__main__":
     # rqdatac.init()
     # data = get_data(online=True)
     # data.to_pickle("data.pkl")
     data = pd.read_pickle("data.pkl")
-    # print(data["close"].rolling(10).cov(data["open"]))
 
-    # print(
-    #     data["close"]
-    #     .groupby(level=1, group_keys=False)
-    #     .apply(lambda x: x.rolling(10).apply(lambda y: y.ewm(alpha=0.1).mean()))
-    # )
-    x1 = data["close"]
-
-    # volatility = volatility.groupby(level=1).rolling(d, int(d / 2)).sum()
-    # print(data["close"].groupby(level=1).apply(lambda x: tb.KAMA(x, 10)))
-    d = 10
-
-    # print(data["close"].groupby(level=1).apply(lambda x: EMA(x, 10, 0.1)))
-    print(x1.groupby(level=1).shift())
-
-    # test_fit(data)
-    # rqdatac.init(os.environ["RQ_URI"])
-    # data = get_data(online = False)
-    # print(data["close"].groupby(level=0).corr(data["open"]))
+    test_functions(data)

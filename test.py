@@ -257,8 +257,8 @@ def test_fit(data, n_cores=1):
 
     random.seed(10)
     sr = SymbolicRegressor(
-        population_size=1000,
-        tournament_size=20,
+        population_size=10,
+        tournament_size=5,
         generations=3,
         stopping_criteria=2,
         p_crossover=0.6,
@@ -277,6 +277,7 @@ def test_fit(data, n_cores=1):
         transformer_kwargs=None,
         parsimony_coefficient=0.005,
         pool_size=n_cores,
+        best_n_children=2
     )
 
     dates = data.index.get_level_values(0).unique()
@@ -290,6 +291,11 @@ def test_fit(data, n_cores=1):
     test_label = test_data["close"] ** 2 + test_data['open'] - np.sqrt(test_data['low'])
     sr.fit(train_data, train_label)
     print(sr.score(test_data, test_label))
+
+    import pickle
+
+    with open('model.pkl', 'wb') as f:
+        pickle.dump(sr, f, pickle.HIGHEST_PROTOCOL)
 
 
 def test_tree():
@@ -380,7 +386,7 @@ if __name__ == "__main__":
 
     # test_functions(data)
     test_fit(data, n_cores=1)
-    test_fit(data, n_cores=1)
-    test_fit(data, n_cores=4)
+    # test_fit(data, n_cores=1)
+    # test_fit(data, n_cores=4)
     # test_tree()
     # test_caching()

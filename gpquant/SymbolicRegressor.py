@@ -37,6 +37,7 @@ class SymbolicRegressor:
         parsimony_coefficient: float = 0,
         cache_dir: str = './cache',
         pool_size: int = 1,
+        best_n_children: int = 1,
     ) -> None:
         os.makedirs(cache_dir, exist_ok=True)
         self.cache_dir: str = cache_dir
@@ -72,6 +73,8 @@ class SymbolicRegressor:
         self.fitness: list[float] = []
         self.best_estimator: SyntaxTree = None
         self.best_fitness: float = None
+        self.best_n_children: int = min(best_n_children, population_size)
+        self.best_children_history: list[SyntaxTree] = []
 
     def __build(self) -> None:
         if self.pool_size > 1:
@@ -194,6 +197,7 @@ class SymbolicRegressor:
         print(f"best fitness: {self.best_fitness}")
 
     def fit(self, X: pd.DataFrame, y: pd.Series) -> None:
+        self.last_best_fitness = None
         print("Build init trees...")
         self.__build()
         for i in range(self.generations):
@@ -215,8 +219,26 @@ class SymbolicRegressor:
                 self.metric.sign * self.fitness
             )
             self.__log(i)
-            if self.metric.sign * (self.best_fitness - self.stopping_criteria) > 0:
-                break
+            # save the best n children into records
+            top_n = np.argsort(self.fitness)[-self.best_n_children :]
+            top_trees = [self.trees[i] for i in top_n]
+            self.best_children_history.append(top_trees)
+
+            if (
+                self.last_best_fitness is not None
+                and self.last_best_fitness is not np.nan
+            ):
+                if (
+                    np.abs(
+                        (self.best_fitness - self.last_best_fitness)
+                        / self.last_best_fitness
+                    )
+                    < self.stopping_criteria
+                ):
+                    break
+            self.last_best_fitness = self.best_fitness
+            # if self.metric.sign * (self.best_fitness - self.stopping_criteria) > 0:
+            #     break
             self.__evolve()
 
     def predict(self, X: pd.DataFrame) -> Any:

@@ -45,7 +45,7 @@ def _direction_accuracy(close: pd.Series, factor) -> float:
 
 
 def _sectional_ic(y: pd.Series, y_pred: pd.Series) -> float:
-    return y.groupby(level=0).corr(y_pred, method="spearman").mean()
+    return y.groupby(level=0).corr(y_pred, method="spearman").mean().abs()
 
 
 # fitness indicator

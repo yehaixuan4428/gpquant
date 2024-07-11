@@ -10,6 +10,17 @@ from .Fitness import fitness_map
 from .Function import function_map
 from .SyntaxTree import SyntaxTree
 from tqdm import tqdm
+from multiprocessing import Pool
+from itertools import repeat
+
+
+def apply_args_and_kwargs(fn, args, kwargs):
+    return fn(*args, **kwargs)
+
+
+def starmap_with_kwargs(pool, fn, args_iter, kwargs_iter):
+    args_for_starmap = zip(repeat(fn), args_iter, kwargs_iter)
+    return pool.starmap_async(apply_args_and_kwargs, args_for_starmap)
 
 
 class SymbolicRegressor:
@@ -35,9 +46,11 @@ class SymbolicRegressor:
         transformer_kwargs: dict = None,
         parsimony_coefficient: float = 0,
         cache_dir: str = './cache',
+        pool_size: int = 1,
     ) -> None:
         os.makedirs(cache_dir, exist_ok=True)
         self.cache_dir: str = cache_dir
+        self.pool_size = pool_size
         self.population_size = population_size
         self.tournament_size = tournament_size
         self.generations = generations
@@ -67,24 +80,47 @@ class SymbolicRegressor:
         self.best_fitness: float = None
 
     def __build(self) -> None:
-        for i in range(self.population_size):
-            self.trees.append(
-                SyntaxTree(
-                    id=i,
-                    init_depth=self.init_depth,
-                    init_method=self.init_method,
-                    function_set=self.function_set,
-                    variable_set=self.variable_set,
-                    const_range=self.const_range,
-                    ts_const_range=self.ts_const_range,
-                    build_preference=self.build_preference,
-                    metric=self.metric,
-                    transformer=self.transformer,
-                    transformer_kwargs=self.transformer_kwargs,
-                    parsimony_coefficient=self.parsimony_coefficient,
-                    cache_dir=self.cache_dir,
+        if self.pool_size > 1:
+            with Pool(processes=self.pool_size) as pool:
+                args_iter = zip(range(self.population_size))
+                kwargs_iter = repeat(
+                    dict(
+                        init_depth=self.init_depth,
+                        init_method=self.init_method,
+                        function_set=self.function_set,
+                        variable_set=self.variable_set,
+                        const_range=self.const_range,
+                        ts_const_range=self.ts_const_range,
+                        build_preference=self.build_preference,
+                        metric=self.metric,
+                        transformer=self.transformer,
+                        transformer_kwargs=self.transformer_kwargs,
+                        parsimony_coefficient=self.parsimony_coefficient,
+                        cache_dir=self.cache_dir,
+                    )
                 )
-            )
+                self.trees = starmap_with_kwargs(
+                    pool, args_iter=args_iter, kwargs_iter=kwargs_iter
+                )
+        else:
+            for i in range(self.population_size):
+                self.trees.append(
+                    SyntaxTree(
+                        id=i,
+                        init_depth=self.init_depth,
+                        init_method=self.init_method,
+                        function_set=self.function_set,
+                        variable_set=self.variable_set,
+                        const_range=self.const_range,
+                        ts_const_range=self.ts_const_range,
+                        build_preference=self.build_preference,
+                        metric=self.metric,
+                        transformer=self.transformer,
+                        transformer_kwargs=self.transformer_kwargs,
+                        parsimony_coefficient=self.parsimony_coefficient,
+                        cache_dir=self.cache_dir,
+                    )
+                )
 
     def __tournament(self) -> SyntaxTree:
         contenders = random.sample(range(self.population_size), self.tournament_size)
@@ -139,7 +175,26 @@ class SymbolicRegressor:
         self.__build()
         for i in range(self.generations):
             print(f"Calculate generation {i}...")
-            self.fitness = np.array([tree.fitness(X, y) for tree in tqdm(self.trees)])
+
+            if self.pool_size == 1:
+                self.fitness = np.array(
+                    [tree.fitness(X, y) for tree in tqdm(self.trees)]
+                )
+            else:
+
+                def multiprocess_fitness(tree, X, y):
+                    return tree.fitness(X, y)
+
+                args_iter = zip(self.trees)
+                kwargs_iter = repeat(dict(X=X, y=y))
+                with Pool(processes=self.pool_size) as pool:
+                    self.fitness = starmap_with_kwargs(
+                        pool,
+                        multiprocess_fitness,
+                        args_iter=args_iter,
+                        kwargs_iter=kwargs_iter,
+                    )
+
             self.best_estimator = self.trees[
                 np.nanargmax(self.metric.sign * self.fitness)
             ]

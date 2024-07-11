@@ -51,8 +51,11 @@ def cache_decorator():
 
             with FileLock(lock_path):
                 if os.path.exists(cache_path):
-                    with open(cache_path, 'rb') as f:
-                        return pickle.load(f)
+                    try:
+                        with open(cache_path, 'rb') as f:
+                            return pickle.load(f)
+                    except:
+                        pass
 
                 kwargs_without_cache_dir = {
                     k: v for k, v in kwargs.items() if k != 'cache_dir'

@@ -5,6 +5,8 @@ from factor_processors.data_loader import DataLoader
 import rqdatac
 import os
 import numpy as np
+import time
+from functools import wraps
 
 
 def original_test():
@@ -236,12 +238,26 @@ def test_functions(data):
     print(_ts_MFI(data["high"], data["low"], data["close"], data["volume"], 10))
 
 
-def test_fit(data):
+def timer(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"Function '{func.__name__}' executed in {elapsed_time:.4f} seconds")
+        return result
+
+    return wrapper
+
+
+@timer
+def test_fit(data, n_cores=1):
     import random
 
     random.seed(10)
     sr = SymbolicRegressor(
-        population_size=100,
+        population_size=1000,
         tournament_size=20,
         generations=3,
         stopping_criteria=2,
@@ -260,7 +276,7 @@ def test_fit(data):
         transformer=None,
         transformer_kwargs=None,
         parsimony_coefficient=0.005,
-        pool_size=4
+        pool_size=n_cores,
     )
 
     dates = data.index.get_level_values(0).unique()
@@ -268,9 +284,12 @@ def test_fit(data):
     test_dates = dates[int(0.8 * len(dates)) :]
     train_data = data.loc[train_dates].sort_index()
     test_data = data.loc[test_dates].sort_index()
-
-    sr.fit(train_data, train_data["close"])
-    print(sr.score(test_data, test_data["close"]))
+    train_label = (
+        train_data["close"] ** 2 + train_data['open'] - np.sqrt(train_data['low'])
+    )
+    test_label = test_data["close"] ** 2 + test_data['open'] - np.sqrt(test_data['low'])
+    sr.fit(train_data, train_label)
+    print(sr.score(test_data, test_label))
 
 
 def test_tree():
@@ -360,6 +379,8 @@ if __name__ == "__main__":
     data = pd.read_pickle("data.pkl")
 
     # test_functions(data)
-    test_fit(data)
+    test_fit(data, n_cores=1)
+    test_fit(data, n_cores=1)
+    test_fit(data, n_cores=4)
     # test_tree()
     # test_caching()

@@ -10,17 +10,7 @@ from .Fitness import fitness_map
 from .Function import function_map
 from .SyntaxTree import SyntaxTree
 from tqdm import tqdm
-from multiprocessing import Pool
-from itertools import repeat
-
-
-def apply_args_and_kwargs(fn, args, kwargs):
-    return fn(*args, **kwargs)
-
-
-def starmap_with_kwargs(pool, fn, args_iter, kwargs_iter):
-    args_for_starmap = zip(repeat(fn), args_iter, kwargs_iter)
-    return pool.starmap(apply_args_and_kwargs, args_for_starmap)
+from joblib import Parallel, delayed
 
 
 class SymbolicRegressor:
@@ -66,6 +56,10 @@ class SymbolicRegressor:
             if function_set
             else list(function_map.values())
         )
+        self.function_names = (
+            function_set if function_set else list(function_map.keys())
+        )
+
         self.variable_set = variable_set
         self.const_range = const_range
         self.ts_const_range = ts_const_range
@@ -81,26 +75,23 @@ class SymbolicRegressor:
 
     def __build(self) -> None:
         if self.pool_size > 1:
-            with Pool(processes=self.pool_size) as pool:
-                args_iter = zip(range(self.population_size))
-                kwargs_iter = repeat(
-                    dict(
-                        init_depth=self.init_depth,
-                        init_method=self.init_method,
-                        function_set=self.function_set,
-                        variable_set=self.variable_set,
-                        const_range=self.const_range,
-                        ts_const_range=self.ts_const_range,
-                        build_preference=self.build_preference,
-                        metric=self.metric,
-                        transformer=self.transformer,
-                        transformer_kwargs=self.transformer_kwargs,
-                        parsimony_coefficient=self.parsimony_coefficient,
-                        cache_dir=self.cache_dir,
-                    )
-                )
 
-                def multiprocess_func(
+            def create_tree(
+                id,
+                init_depth,
+                init_method,
+                function_set,
+                variable_set,
+                const_range,
+                ts_const_range,
+                build_preference,
+                metric,
+                transformer,
+                transformer_kwargs,
+                parsimony_coefficient,
+                cache_dir,
+            ):
+                return SyntaxTree(
                     id,
                     init_depth,
                     init_method,
@@ -114,29 +105,26 @@ class SymbolicRegressor:
                     transformer_kwargs,
                     parsimony_coefficient,
                     cache_dir,
-                ):
-                    return SyntaxTree(
-                        id,
-                        init_depth,
-                        init_method,
-                        function_set,
-                        variable_set,
-                        const_range,
-                        ts_const_range,
-                        build_preference,
-                        metric,
-                        transformer,
-                        transformer_kwargs,
-                        parsimony_coefficient,
-                        cache_dir,
-                    )
-
-                self.trees = starmap_with_kwargs(
-                    pool,
-                    multiprocess_func,
-                    args_iter=args_iter,
-                    kwargs_iter=kwargs_iter,
                 )
+
+            self.trees = Parallel(n_jobs=self.pool_size)(
+                delayed(create_tree)(
+                    id,
+                    self.init_depth,
+                    self.init_method,
+                    self.function_set,
+                    self.variable_set,
+                    self.const_range,
+                    self.ts_const_range,
+                    self.build_preference,
+                    self.metric,
+                    self.transformer,
+                    self.transformer_kwargs,
+                    self.parsimony_coefficient,
+                    self.cache_dir,
+                )
+                for id in range(self.population_size)
+            )
         else:
             for i in range(self.population_size):
                 self.trees.append(
@@ -216,19 +204,9 @@ class SymbolicRegressor:
                     [tree.fitness(X, y) for tree in tqdm(self.trees)]
                 )
             else:
-
-                def multiprocess_fitness(tree, X, y):
-                    return tree.fitness(X, y)
-
-                args_iter = zip(self.trees)
-                kwargs_iter = repeat(dict(X=X, y=y))
-                with Pool(processes=self.pool_size) as pool:
-                    self.fitness = starmap_with_kwargs(
-                        pool,
-                        multiprocess_fitness,
-                        args_iter=args_iter,
-                        kwargs_iter=kwargs_iter,
-                    )
+                self.fitness = Parallel(n_jobs=self.pool_size)(
+                    delayed(tree.fitness)(X, y) for tree in self.trees
+                )
 
             self.best_estimator = self.trees[
                 np.nanargmax(self.metric.sign * self.fitness)

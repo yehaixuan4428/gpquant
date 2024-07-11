@@ -309,6 +309,39 @@ def test_tree():
     print(tree)
 
 
+def test_caching():
+    from gpquant.cache_decorator import cache_decorator
+    from gpquant.Function import Function
+    from gpquant.SyntaxTree import SyntaxTree
+
+    @cache_decorator()
+    def my_square(x1):
+        return x1**2
+
+    my_square_func = Function(function=my_square, name="square", arity=1)
+    data = pd.read_pickle('./data.pkl')
+
+    print(my_square_func(data['close'], cache_dir='./cache'))
+    import random
+
+    random.seed(22)
+    from gpquant.Fitness import fitness_map
+
+    tree = SyntaxTree(
+        id=0,
+        init_depth=(2, 2),
+        init_method='full',
+        function_set=[my_square_func],
+        variable_set=['open', 'high', 'low'],
+        const_range=(1, 5),
+        ts_const_range=(1, 5),
+        build_preference=(0.75, 0.75),
+        metric=fitness_map['sectional ic'],
+        cache_dir='./cache',
+    )
+    print(tree.nodes[0])
+    print(tree.fitness(data, data['open']))
+
 if __name__ == "__main__":
     # rqdatac.init()
     # data = get_data(online=True)
@@ -317,4 +350,5 @@ if __name__ == "__main__":
 
     # test_functions(data)
     # test_fit(data)
-    test_tree()
+    # test_tree()
+    test_caching()

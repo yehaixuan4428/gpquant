@@ -1,3 +1,4 @@
+import os
 import random
 from typing import Any
 
@@ -33,7 +34,10 @@ class SymbolicRegressor:
         transformer: str = None,
         transformer_kwargs: dict = None,
         parsimony_coefficient: float = 0,
+        cache_dir: str = './cache',
     ) -> None:
+        os.makedirs(cache_dir, exist_ok=True)
+        self.cache_dir: str = cache_dir
         self.population_size = population_size
         self.tournament_size = tournament_size
         self.generations = generations
@@ -78,6 +82,7 @@ class SymbolicRegressor:
                     transformer=self.transformer,
                     transformer_kwargs=self.transformer_kwargs,
                     parsimony_coefficient=self.parsimony_coefficient,
+                    cache_dir=self.cache_dir,
                 )
             )
 

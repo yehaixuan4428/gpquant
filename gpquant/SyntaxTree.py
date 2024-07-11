@@ -11,11 +11,12 @@ from .Function import Function
 
 
 class Node:
-    def __init__(self, data, is_ts: float = False):
+    def __init__(self, data, is_ts: float = False, cache_dir: str = './cache'):
         self.data = data  # Function (function), str (variable) or int (constant)
         self.parent: "Node" = None
         self.children: list[Node] = []  # nodes in order of function arguments
         self.is_ts = is_ts  # if data of this node is time-series const
+        self.cache_dir = cache_dir
 
     def __str__(self):
         if self.children:
@@ -34,7 +35,7 @@ class Node:
         if isinstance(self.data, Function):
             fixed_var = [X[param] for param in self.data.fixed_params]
             free_var = [node(X) for node in self.children]
-            return self.data(*fixed_var, *free_var)
+            return self.data(*fixed_var, *free_var, cache_dir=self.cache_dir)
         elif isinstance(self.data, str):
             return X[self.data]
         elif self.is_ts:
@@ -73,6 +74,7 @@ class SyntaxTree:
         transformer: Backtester = None,
         transformer_kwargs: dict = None,
         parsimony_coefficient: float = 0,
+        cache_dir: str = './cache',
     ) -> None:
         """
         @param id: tree id, the data in the parent node of root for locating it
@@ -87,8 +89,10 @@ class SyntaxTree:
         @param transformer: backtester to transform factor into asset
         @param transformer_kwargs: arguments of transformer
         @param parsimony_coefficient: penalty strength for formula inflation
+        @param cache_dir: function results caching dir
         """
-        self.id = Node(id)
+        self.cache_dir = cache_dir
+        self.id = Node(id, cache_dir=cache_dir)
         self.init_depth = init_depth
         self.init_method = init_method
         self.function_set = function_set
@@ -120,7 +124,7 @@ class SyntaxTree:
 
         # set root node data to a function
         data = random.choice(self.function_set)
-        node = Node(data)
+        node = Node(data, cache_dir=self.cache_dir)
         self.id.add_child(node)
         parent_stack = [node]
         children_stack = [data.arity - len(data.fixed_params)]
@@ -132,7 +136,7 @@ class SyntaxTree:
             ts_const_num = parent_stack[-1].data.is_ts
             while ts_const_num:
                 data = random.randint(*self.ts_const_range)
-                node = Node(data, is_ts=True)
+                node = Node(data, is_ts=True, cache_dir=self.cache_dir)
                 parent_stack[-1].add_child(node)
                 ts_const_num -= 1
                 children_stack[-1] -= 1
@@ -148,7 +152,7 @@ class SyntaxTree:
             ):
                 # add function
                 data = random.choice(self.function_set)
-                node = Node(data)
+                node = Node(data, cache_dir=self.cache_dir)
                 parent_stack[-1].add_child(node)
                 parent_stack.append(node)
                 children_stack.append(data.arity - len(data.fixed_params))
@@ -156,11 +160,11 @@ class SyntaxTree:
                 # add terminal, and determine to add variable or constant
                 if random.random() < self.build_preference[1]:
                     data = random.choice(self.variable_set)
-                    node = Node(data)
+                    node = Node(data, cache_dir=self.cache_dir)
                     parent_stack[-1].add_child(node)
                 else:
                     data = random.randint(*self.const_range)
-                    node = Node(data)
+                    node = Node(data, cache_dir=self.cache_dir)
                     parent_stack[-1].add_child(node)
                 children_stack[-1] -= 1
                 while children_stack[-1] == 0:
@@ -316,7 +320,7 @@ class SyntaxTree:
             if not function_candidates:
                 return self_copy
             replacement = random.choice(function_candidates)
-            new_node = Node(replacement)
+            new_node = Node(replacement, cache_dir=self.cache_dir)
             for node in mutation_node.children:
                 new_node.add_child(node)
             # correct children order
@@ -324,14 +328,14 @@ class SyntaxTree:
         elif mutation_node.is_ts:
             # time-series constant node mutation
             replacement = random.randint(*self.ts_const_range)
-            new_node = Node(replacement, is_ts=True)
+            new_node = Node(replacement, is_ts=True, cache_dir=self.cache_dir)
         else:
             # variable or constant node mutation
             if random.random() < self.build_preference[1]:
                 replacement = random.choice(self.variable_set)
             else:
                 replacement = random.randint(*self.const_range)
-            new_node = Node(replacement)
+            new_node = Node(replacement, cache_dir=self.cache_dir)
         mutation_parent.chg_child(mutation_node, new_node)
         # update flatten tree
         self_copy.nodes = self_copy.__flatten()

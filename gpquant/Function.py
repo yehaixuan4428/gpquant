@@ -3,6 +3,7 @@ import warnings
 import numpy as np
 import pandas as pd
 import talib as ta
+from .cache_decorator import cache_decorator
 
 warnings.filterwarnings("ignore")  # prevent reporting 'All-NaN slice encountered'
 
@@ -19,35 +20,44 @@ class Function:
         # arguments forced to be certain variables
         self.fixed_params = [] if fixed_params is None else fixed_params
 
-    def __call__(self, *args):
-        return self.function(*args)
+    def __call__(self, *args, cache_dir: str = './cache'):
+        return self.function(*args, cache_dir=cache_dir)
 
 
 def __rolling(x1: pd.Series, d: int, function=None, **kwargs) -> np.ndarray:
     """auxiliary function, rolling more effectively than apply"""
-    incomplete_w = np.lib.stride_tricks.sliding_window_view(x1.values, d)[..., ::-1]
-    window = pd.DataFrame(
-        np.vstack((np.full([d - 1, d], np.nan), incomplete_w)), index=x1.index
-    )
-    if function is None:  # just window
-        return window
-    else:
-        result = function(window, **kwargs)  # add other arguments needed in function
-        for i in range(d - 1):
-            result[i] = np.nan
-        return pd.Series(result, index=x1.index)
+    try:
+        incomplete_w = np.lib.stride_tricks.sliding_window_view(x1.values, d)[..., ::-1]
+        window = pd.DataFrame(
+            np.vstack((np.full([d - 1, d], np.nan), incomplete_w)), index=x1.index
+        )
+        try:
+            result = function(
+                window, **kwargs
+            )  # add other arguments needed in function
+            # for i in range(d - 1):
+            #     result[i] = np.nan
+            result[: d - 1] = np.nan
+            return pd.Series(result, index=x1.index)
+        except TypeError:
+            return window
+    except (AttributeError, ValueError):
+        return np.nan
 
 
 def __scalar_ema(window: pd.DataFrame, alpha: float) -> np.ndarray:
     """auxiliary function, calculating the ema of the last value in time-series"""
-    if isinstance(alpha == alpha, bool):  # alpha is a scalar
-        alpha_vec = np.broadcast_to(alpha, (window.shape[0], 1))
-    else:  # alpha is a vector
-        alpha_vec = np.broadcast_to(alpha, (1, len(alpha))).T
-    window *= alpha_vec.dot(
-        np.broadcast_to(np.arange(window.shape[1]), (1, window.shape[1]))
-    )
-    return np.nansum(window, axis=1) * alpha
+    try:
+        if isinstance(alpha == alpha, bool):  # alpha is a scalar
+            alpha_vec = np.broadcast_to(alpha, (window.shape[0], 1))
+        else:  # alpha is a vector
+            alpha_vec = np.broadcast_to(alpha, (1, len(alpha))).T
+        window *= alpha_vec.dot(
+            np.broadcast_to(np.arange(window.shape[1]), (1, window.shape[1]))
+        )
+        return np.nansum(window, axis=1) * alpha
+    except AttributeError:
+        return np.nan
 
 
 def _square(x1):
@@ -78,12 +88,13 @@ def _neg(x1):
 def _inv(x1):
     """closure of inverse for zero arguments"""
     with np.errstate(divide="ignore", invalid="ignore"):
-        if isinstance(x1, pd.Series):
-            return pd.Series(
-                np.where(np.abs(x1) > 0.001, 1.0 / x1, 0.0), index=x1.index
-            )
-        else:
-            return np.where(np.abs(x1) > 0.001, 1.0 / x1, 0.0)
+        try:
+            return (1.0 / x1).mask(x1.abs() <= 0.001, 0.0)
+        except AttributeError:
+            if np.abs(x1) > 0.001:
+                return 1.0 / x1
+            else:
+                return 0.0
 
 
 def _abs(x1):
@@ -105,18 +116,17 @@ def _tan(x1):
 def _log(x1):
     """closure of log for zero arguments, sign-protected"""
     with np.errstate(divide="ignore", invalid="ignore"):
-        if isinstance(x1, pd.Series):
-            idx = x1.index
-            x1 = np.where(np.abs(x1) > 0.001, x1, 1)
-            return pd.Series(
-                np.where(x1 < -1, np.log(np.abs(x1)) * np.sign(x1), np.log(np.abs(x1))),
-                index=idx,
-            )
-        else:
-            x1 = np.where(np.abs(x1) > 0.001, x1, 1)
-            return np.where(
-                x1 < -1, np.log(np.abs(x1)) * np.sign(x1), np.log(np.abs(x1))
-            )
+        try:
+            x1 = x1.mask(x1.abs() <= 0.001, 1.0)
+            return np.log(x1.abs()).mask(x1 < -1, np.log(x1.abs()) * np.sign(x1))
+        except AttributeError:
+            if np.abs(x1) <= 0.001:
+                return 0.0
+            else:
+                if x1 < -1:
+                    return np.log(np.abs(x1)) * np.sign(x1)
+                else:
+                    return np.log(np.abs(x1))
 
 
 def _sig(x1):
@@ -142,11 +152,10 @@ def _div(x1, x2):
         values = np.where(np.abs(x2) > 0.001, np.divide(x1, x2), 1.0)
         if isinstance(x1, pd.Series):
             return pd.Series(values, index=x1.index)
-
         if isinstance(x2, pd.Series):
             return pd.Series(values, index=x2.index)
 
-        return values
+        return values.flatten(0)
 
 
 def _max(x1, x2):
@@ -170,7 +179,7 @@ def _clear_by_cond(x1, x2, x3):
         return pd.Series(values, index=x2.index)
     if isinstance(x3, pd.Series):
         return pd.Series(values, index=x3.index)
-    return values
+    return np.nan
 
 
 def _if_then_else(x1, x2, x3):
@@ -182,7 +191,9 @@ def _if_then_else(x1, x2, x3):
         return pd.Series(values, index=x2.index)
     if isinstance(x3, pd.Series):
         return pd.Series(values, index=x3.index)
-    return values
+
+    '''disable invalid operation if all variables are float'''
+    return np.nan
 
 
 def _if_cond_then_else(x1, x2, x3, x4):
@@ -196,31 +207,36 @@ def _if_cond_then_else(x1, x2, x3, x4):
         return pd.Series(values, index=x3.index)
     if isinstance(x4, pd.Series):
         return pd.Series(values, index=x4.index)
-    return values
+
+    '''disable invalid operation if all variables are float'''
+    return np.nan
 
 
 def _ts_delay(x1, d: int):
     """x1 d datetimes ago"""
     # return pd.Series(x1).shift(d).values
-    if isinstance(x1, pd.Series):
+    try:
         return x1.groupby(level=1, group_keys=False).shift(d)
-    return np.array([np.nan])
+    except AttributeError:
+        return np.nan
 
 
 def _ts_delta(x1, d: int):
     """difference between x1 and x1 d datetimes ago"""
     # return x1 - pd.Series(x1).shift(d).values
-    if isinstance(x1, pd.Series):
+    try:
         return x1.groupby(level=1, group_keys=False).diff(d)
-    return np.array([np.nan])
+    except AttributeError:
+        return np.nan
 
 
 def _ts_pct_change(x1, d: int):
     """percentage change of x1 in the last d datetimes"""
     # return _div(_ts_delta(x1, d), x1) * np.sign(x1)
-    if isinstance(x1, pd.Series):
+    try:
         return x1.groupby(level=1, group_keys=False).pct_change(d, fill_method=None)
-    return np.array([np.nan])
+    except AttributeError:
+        return np.nan
 
 
 def _ts_mean_return(x1, d: int):
@@ -230,68 +246,75 @@ def _ts_mean_return(x1, d: int):
 
 def _ts_max(x1, d: int):
     """maximum x1 in the last d datetimes"""
-    if isinstance(x1, pd.Series):
+    try:
         return x1.groupby(level=1, group_keys=False).apply(
             lambda x: x.rolling(d, min_periods=int(d / 2)).max()
         )
-    return pd.Series(x1).rolling(d, min_periods=int(d / 2)).max().values
+    except AttributeError:
+        return np.nan
 
 
 def _ts_min(x1, d: int):
     """minimum x1 in the last d datetimes"""
-    if isinstance(x1, pd.Series):
+    try:
         return x1.groupby(level=1, group_keys=False).apply(
             lambda x: x.rolling(d, min_periods=int(d / 2)).min()
         )
-    return pd.Series(x1).rolling(d, min_periods=int(d / 2)).min().values
+    except AttributeError:
+        return np.nan
 
 
 def _ts_sum(x1, d: int):
     """moving sum"""
-    if isinstance(x1, pd.Series):
+    try:
         return x1.groupby(level=1, group_keys=False).apply(
             lambda x: x.rolling(d, min_periods=int(d / 2)).sum()
         )
-    return pd.Series(x1).rolling(d, min_periods=int(d / 2)).sum().values
+    except AttributeError:
+        return np.nan
 
 
 def _ts_product(x1, d: int):
     """moving product"""
-    if isinstance(x1, pd.Series):
+    try:
         return (
             np.exp(_log(x1))
             .groupby(level=1, group_keys=False)
             .apply(lambda x: x.rolling(d, min_periods=int(d / 2)).sum())
         )
-    return pd.Series(np.exp(_log(x1))).rolling(d, min_periods=int(d / 2)).sum().values
+    except AttributeError:
+        return np.nan
 
 
 def _ts_mean(x1, d: int):
     """moving average"""
-    if isinstance(x1, pd.Series):
+    try:
         return x1.groupby(level=1, group_keys=False).apply(
             lambda x: x.rolling(d, min_periods=int(d / 2)).mean()
         )
-    return pd.Series(x1).rolling(d, min_periods=int(d / 2)).mean().values
+    except AttributeError:
+        return np.nan
 
 
 def _ts_std(x1, d: int):
     """moving standard deviation"""
-    if isinstance(x1, pd.Series):
+    try:
         return x1.groupby(level=1, group_keys=False).apply(
             lambda x: x.rolling(d, min_periods=int(d / 2)).std()
         )
-    return pd.Series(x1).rolling(d, min_periods=int(d / 2)).std().values
+    except AttributeError:
+        return np.nan
 
 
 def _ts_median(x1, d: int):
     """moving median"""
-    if isinstance(x1, pd.Series):
+    try:
         return x1.groupby(level=1, group_keys=False).apply(
             lambda x: x.rolling(d, min_periods=int(d / 2)).std()
         )
 
-    return pd.Series(x1).rolling(d, min_periods=int(d / 2)).median().values
+    except AttributeError:
+        return np.nan
 
 
 def _ts_midpoint(x1, d: int):
@@ -301,21 +324,22 @@ def _ts_midpoint(x1, d: int):
 
 def _ts_skew(x1, d: int):
     """moving skewness"""
-    if isinstance(x1, pd.Series):
+    try:
         return x1.groupby(level=1, group_keys=False).apply(
             lambda x: x.rolling(d, min_periods=int(d / 2)).skew()
         )
-    return pd.Series(x1).rolling(d, min_periods=int(d / 2)).skew().values
+    except AttributeError:
+        return np.nan
 
 
 def _ts_kurt(x1, d: int):
     """moving kurtosis"""
-    if isinstance(x1, pd.Series):
+    try:
         return x1.groupby(level=1, group_keys=False).apply(
             lambda x: x.rolling(d, min_periods=int(d / 2)).kurt()
         )
-
-    return pd.Series(x1).rolling(d, min_periods=int(d / 2)).kurt().values
+    except AttributeError:
+        return np.nan
 
 
 def _ts_inverse_cv(x1, d: int):
@@ -325,62 +349,37 @@ def _ts_inverse_cv(x1, d: int):
 
 def _ts_cov(x1, x2, d: int):
     """moving covariance of x1 and x2"""
-    # return pd.Series(x1).rolling(d, min_periods=int(d / 2)).cov(pd.Series(x2)).values
-    if isinstance(x1, pd.Series) and isinstance(x2, pd.Series):
+    if ~isinstance(x1, pd.Series) or ~isinstance(x2, pd.Series):
+        return np.nan
 
-        def func(x, d):
-            return x["x1"].rolling(d, min_periods=int(d / 2)).cov(x["x2"])
+    def func(x, d):
+        return x["x1"].rolling(d, min_periods=int(d / 2)).cov(x["x2"])
 
-        x1 = x1.to_frame("x1")
-        x1["x2"] = x2
-        return (
-            x1.groupby(level=1, group_keys=False)
-            .apply(lambda x: func(x, d))
-            .sort_index()
-        )
-
-    if isinstance(x1, pd.Series):
-        return pd.Series(np.nan, index=x1.index)
-
-    if isinstance(x2, pd.Series):
-        return pd.Series(np.nan, index=x2.index)
-
-    return np.nan
+    x1 = x1.to_frame("x1")
+    x1["x2"] = x2
+    return (
+        x1.groupby(level=1, group_keys=False).apply(lambda x: func(x, d)).sort_index()
+    )
 
 
 def _ts_corr(x1, x2, d: int):
     """moving correlation coefficient of x1 and x2"""
+    if ~isinstance(x1, pd.Series) or ~isinstance(x2, pd.Series):
+        return np.nan
 
     # return pd.Series(x1).rolling(d, min_periods=int(d / 2)).corr(pd.Series(x2)).values
-    if isinstance(x1, pd.Series) and isinstance(x2, pd.Series):
+    def func(x, d):
+        return x["x1"].rolling(d, min_periods=int(d / 2)).corr(x["x2"])
 
-        def func(x, d):
-            return x["x1"].rolling(d, min_periods=int(d / 2)).corr(x["x2"])
-
-        x1 = pd.Series(x1).to_frame("x1")
-        x1["x2"] = pd.Series(x2)
-        return (
-            x1.groupby(level=1, group_keys=False)
-            .apply(lambda x: func(x, d))
-            .sort_index()
-        )
-    if isinstance(x1, pd.Series):
-        return pd.Series(np.nan, index=x1.index)
-
-    if isinstance(x2, pd.Series):
-        return pd.Series(np.nan, index=x2.index)
-
-    return np.nan
+    x1 = pd.Series(x1).to_frame("x1")
+    x1["x2"] = pd.Series(x2)
+    return (
+        x1.groupby(level=1, group_keys=False).apply(lambda x: func(x, d)).sort_index()
+    )
 
 
 def _ts_autocorr(x1, d: int, i: int):
     """moving autocorrelation coefficient between x and x lag i period"""
-    # return (
-    #     pd.Series(x1)
-    #     .rolling(d, min_periods=int(d / 2))
-    #     .corr(pd.Series(x1).shift(i))
-    #     .values
-    # )
     x2 = _ts_delay(x1, i)
     return _ts_corr(x1, x2, d)
 
@@ -408,10 +407,11 @@ def _ts_regression_alpha(x1, x2, d: int):
 
 def _ts_linear_slope(x1, d: int):
     """slope of regression x1 in the last d datetimes onto (1, 2, ..., d)"""
-    if isinstance(x1, pd.Series):
+    try:
         x2 = pd.Series(np.arange(len(x1)) + 1, index=x1.index)
         return _div(_ts_cov(x1, x2, d), _ts_std(x2, d) ** 2)
-    return np.nan
+    except AttributeError:
+        return np.nan
 
 
 def _ts_linear_intercept(x1, d: int):
@@ -422,22 +422,22 @@ def _ts_linear_intercept(x1, d: int):
 def _ts_argmax(x1, d: int):
     """position of maximum x1 in the last d datetimes"""
     # return pd.Series(x1).rolling(d).apply(np.argmax, engine="numba", raw=True).values
-    if isinstance(x1, pd.Series):
+    try:
         return (
-            pd.Series(x1)
-            .groupby(level=1)
+            x1.groupby(level=1)
             .rolling(d, min_periods=int(d / 2))
             .apply(np.argmax, raw=True)
             .droplevel(0)
             .sort_index()
         )
-    return np.nan
+    except AttributeError:
+        return np.nan
 
 
 def _ts_argmin(x1, d: int):
     """position of minimum x1 in the last d datetimes"""
     # return pd.Series(x1).rolling(d).apply(np.argmin, engine="numba", raw=True).values
-    if isinstance(x1, pd.Series):
+    try:
         return (
             x1.groupby(level=1)
             .rolling(d, min_periods=int(d / 2))
@@ -445,7 +445,8 @@ def _ts_argmin(x1, d: int):
             .droplevel(0)
             .sort_index()
         )
-    return np.nan
+    except AttributeError:
+        return np.nan
 
 
 def _ts_argmaxmin(x1, d: int):
@@ -455,7 +456,7 @@ def _ts_argmaxmin(x1, d: int):
 
 def _ts_rank(x1, d: int):
     """moving quantile of current x1"""
-    if isinstance(x1, pd.Series):
+    try:
         return (
             x1.groupby(level=1)
             .rolling(d, min_periods=int(d / 2))
@@ -463,29 +464,33 @@ def _ts_rank(x1, d: int):
             .droplevel(0)
             .sort_index()
         )
-    return np.nan
+    except AttributeError:
+        return np.nan
 
 
 def _ts_ema(x1, d: int):
     """exponential moving average (EMA)"""
-    if isinstance(x1, pd.Series):
+    try:
         alpha = 2 / (d + 1)
         # return __rolling(pd.Series(x1), d, function=__scalar_ema, alpha=alpha)
         return (
             x1.groupby(level=1)
-            .apply(lambda x: __rolling(x, d, function=__scalar_ema, alpha=alpha))
-            .droplevel(0)
+            .apply(
+                lambda x: __rolling(
+                    x.droplevel(1), d, function=__scalar_ema, alpha=alpha
+                )
+            )
+            .swaplevel()
             .sort_index()
         )
-    return np.nan
+    except AttributeError:
+        return np.nan
 
 
 def _ts_dema(x1, d: int):
     """double exponential moving average (DEMA): 2 * EMA(x1) - EMA(EMA(x1))"""
-    if isinstance(x1, pd.Series):
-        ema = _ts_ema(x1, d)
-        return 2 * ema - _ts_ema(ema, d)
-    return np.nan
+    ema = _ts_ema(x1, d)
+    return 2 * ema - _ts_ema(ema, d)
 
 
 def _ts_kama(x1, d1: int, d2: int, d3: int):
@@ -500,7 +505,7 @@ def _ts_kama(x1, d1: int, d2: int, d3: int):
     Volatility_{t,d} = sum(abs(x1 - x1 1 datetimes ago)
     4) d is lag period, f is fastest smoothing constant, s is slowest smoothing constant
     d = d1, f = 1 / (1 + d2), s = 1 / (1 + d3)"""
-    if isinstance(x1, pd.Series):
+    try:
 
         def func(x1, d1, d2, d3):
             d, f, s = (
@@ -508,24 +513,20 @@ def _ts_kama(x1, d1: int, d2: int, d3: int):
                 1 / (1 + min(d2, d3)),
                 1 / (1 + max(d2, d3)),
             )  # f should greater than s
-            change = np.abs(x1 - pd.Series(x1).shift(d))
-            volatility = (
-                pd.Series(np.abs(x1 - pd.Series(x1).shift()))
-                .rolling(d, int(d / 2))
-                .sum()
-            )
+            change = np.abs(x1 - x1.shift(d))
+            volatility = (x1 - x1.shift()).abs().rolling(d, int(d / 2)).sum()
             ER = _div(change, volatility)
             SC = (ER * f + (1 - ER) * s) ** 2
-            return __rolling(pd.Series(x1), d, function=__scalar_ema, alpha=SC)
+            return __rolling(x1, d, function=__scalar_ema, alpha=SC)
 
         return (
-            pd.Series(x1)
-            .groupby(level=1)
-            .apply(lambda x: func(x, d1, d2, d3))
-            .droplevel(0)
+            x1.groupby(level=1)
+            .apply(lambda x: func(x.droplevel(1), d1, d2, d3))
+            .swaplevel()
             .sort_index()
         )
-    return np.nan
+    except AttributeError:
+        return np.nan
 
 
 def _ts_AROONOSC(high, low, d: int):
@@ -547,7 +548,7 @@ def _ts_CCI(high, low, close, d: int):
     MD (Mean Deviation) = sum(abs(TP - MA)) / d"""
     TP = (high + low + close) / 3
     MA = _ts_mean(TP, d)
-    MD = _ts_mean(pd.Series(np.abs(TP - MA)), d)
+    MD = _ts_mean((TP - MA).abs(), d)
     return _div(TP - MA, 0.015 * MD)
 
 
@@ -555,12 +556,10 @@ def _ts_ATR(high, low, close, d: int):
     """Average True Range: ts_mean(TR, d)
     TR (True Range) = max(High - Low, abs(High - previous Close), abs(Low - previous Close))
     """
-    TR = pd.Series(
-        np.maximum(
-            high - low,
-            high - close.groupby(level=1).shift(),
-            low - close.groupby(level=1).shift(),
-        )
+    TR = np.maximum(
+        high - low,
+        high - close.groupby(level=1).shift(),
+        low - close.groupby(level=1).shift(),
     )
     return _ts_mean(TR, d)
 
@@ -580,7 +579,8 @@ def _ts_ADX(high, low, close, d: int):
     ATR = _ts_ATR(high, low, close, d)
     pDI = _div(_ts_mean(high - high.groupby(level=1).shift(), d), ATR)
     nDI = _div(_ts_mean(low - low.groupby(level=1).shift(), d), ATR)
-    DX = _div(pd.Series(np.abs(pDI - nDI)), pd.Series(np.abs(pDI + nDI))) * 100
+    DX = _div((pDI - nDI).abs(), (pDI + nDI).abs()) * 100.0
+
     return _ts_mean(DX, d)
 
 
@@ -597,7 +597,7 @@ def _ts_MFI(high, low, close, volume, d: int):
     PMF = _clear_by_cond(pn, 0, RMF)
     NMF = _clear_by_cond(0, pn, RMF)
     MFR = _div(_ts_sum(PMF, d), _ts_sum(NMF, d))
-    return 100 - _div(100, 1 + MFR)
+    return 100.0 - _div(100.0, 1.0 + MFR)
 
 
 # 1. basic functions (scalar arguments, vectorized computation)

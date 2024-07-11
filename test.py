@@ -260,6 +260,7 @@ def test_fit(data):
         transformer=None,
         transformer_kwargs=None,
         parsimony_coefficient=0.005,
+        pool_size=4
     )
 
     dates = data.index.get_level_values(0).unique()
@@ -321,30 +322,44 @@ def test_caching():
 
     random.seed(22)
 
-    for function in list(function_map.values()):
-        tree = SyntaxTree(
-            id=0,
-            init_depth=(2, 4),
-            init_method='full',
-            function_set=[function],
-            variable_set=['open', 'high', 'low', 'close', 'volume'],
-            const_range=(1, 5),
-            ts_const_range=(1, 5),
-            build_preference=(0.75, 0.75),
-            metric=fitness_map['sectional ic'],
-            cache_dir='./cache',
-        )
-        print(tree.nodes[0])
-        print(tree.fitness(data, data['open']))
+    # for function in list(function_map.values()):
+    #     tree = SyntaxTree(
+    #         id=0,
+    #         init_depth=(2, 4),
+    #         init_method='full',
+    #         function_set=[function],
+    #         variable_set=['open', 'high', 'low', 'close', 'volume'],
+    #         const_range=(1, 5),
+    #         ts_const_range=(1, 5),
+    #         build_preference=(0.75, 0.75),
+    #         metric=fitness_map['sectional ic'],
+    #         cache_dir='./cache',
+    #     )
+    #     print(tree.nodes[0])
+    #     print(tree.fitness(data, data['open']))
+
+    tree = SyntaxTree(
+        id=0,
+        init_depth=(2, 4),
+        init_method='full',
+        function_set=[function_map['ts max']],
+        variable_set=['open', 'high', 'low', 'close', 'volume'],
+        const_range=(1, 5),
+        ts_const_range=(1, 5),
+        build_preference=(0.75, 0.75),
+        metric=fitness_map['sectional ic'],
+        cache_dir='./cache',
+    )
+    print(tree)
 
 
 if __name__ == "__main__":
     # rqdatac.init()
     # data = get_data(online=True)
     # data.to_pickle("data.pkl")
-    # data = pd.read_pickle("data.pkl")
+    data = pd.read_pickle("data.pkl")
 
     # test_functions(data)
-    # test_fit(data)
+    test_fit(data)
     # test_tree()
-    test_caching()
+    # test_caching()

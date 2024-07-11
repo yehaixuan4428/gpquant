@@ -20,7 +20,7 @@ def apply_args_and_kwargs(fn, args, kwargs):
 
 def starmap_with_kwargs(pool, fn, args_iter, kwargs_iter):
     args_for_starmap = zip(repeat(fn), args_iter, kwargs_iter)
-    return pool.starmap_async(apply_args_and_kwargs, args_for_starmap)
+    return pool.starmap(apply_args_and_kwargs, args_for_starmap)
 
 
 class SymbolicRegressor:
@@ -99,8 +99,43 @@ class SymbolicRegressor:
                         cache_dir=self.cache_dir,
                     )
                 )
+
+                def multiprocess_func(
+                    id,
+                    init_depth,
+                    init_method,
+                    function_set,
+                    variable_set,
+                    const_range,
+                    ts_const_range,
+                    build_preference,
+                    metric,
+                    transformer,
+                    transformer_kwargs,
+                    parsimony_coefficient,
+                    cache_dir,
+                ):
+                    return SyntaxTree(
+                        id,
+                        init_depth,
+                        init_method,
+                        function_set,
+                        variable_set,
+                        const_range,
+                        ts_const_range,
+                        build_preference,
+                        metric,
+                        transformer,
+                        transformer_kwargs,
+                        parsimony_coefficient,
+                        cache_dir,
+                    )
+
                 self.trees = starmap_with_kwargs(
-                    pool, args_iter=args_iter, kwargs_iter=kwargs_iter
+                    pool,
+                    multiprocess_func,
+                    args_iter=args_iter,
+                    kwargs_iter=kwargs_iter,
                 )
         else:
             for i in range(self.population_size):

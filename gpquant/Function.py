@@ -462,7 +462,7 @@ def _ts_linear_slope(x1, d: int):
     try:
         x2 = pd.Series(np.arange(len(x1)) + 1, index=x1.index)
         return _div(_ts_cov(x1, x2, d), _ts_std(x2, d) ** 2)
-    except AttributeError:
+    except (AttributeError, TypeError):
         return np.nan
 
 

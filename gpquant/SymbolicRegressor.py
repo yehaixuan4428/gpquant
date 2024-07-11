@@ -206,7 +206,7 @@ class SymbolicRegressor:
         print("Build init trees...")
         self.__build()
         for i in range(self.generations):
-            print(f"Calculate generation {i}...")
+            print(f"Calculate generation {i+1}...")
 
             if self.pool_size == 1:
                 self.fitness = np.array(

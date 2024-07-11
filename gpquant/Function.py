@@ -60,59 +60,73 @@ def __scalar_ema(window: pd.DataFrame, alpha: float) -> np.ndarray:
         return np.nan
 
 
+@cache_decorator()
 def _square(x1):
     return x1**2
 
 
+@cache_decorator()
 def _sqrt(x1):
     """sign-protected"""
     return np.sqrt(np.abs(x1)) * np.sign(x1)
 
 
+@cache_decorator()
 def _cube(x1):
     return x1**3
 
 
+@cache_decorator()
 def _cbrt(x1):
     return np.cbrt(x1)
 
 
+@cache_decorator()
 def _sign(x1):
     return np.sign(x1)
 
 
+@cache_decorator()
 def _neg(x1):
     return -x1
 
 
+@cache_decorator()
 def _inv(x1):
     """closure of inverse for zero arguments"""
     with np.errstate(divide="ignore", invalid="ignore"):
         try:
             return (1.0 / x1).mask(x1.abs() <= 0.001, 0.0)
         except AttributeError:
+            if isinstance(x1, np.ndarray):
+                x1 = x1[0]
             if np.abs(x1) > 0.001:
                 return 1.0 / x1
             else:
                 return 0.0
 
 
+@cache_decorator()
 def _abs(x1):
     return np.abs(x1)
 
 
+@cache_decorator()
 def _sin(x1):
     return np.sin(x1)
 
 
+@cache_decorator()
 def _cos(x1):
     return np.cos(x1)
 
 
+@cache_decorator()
 def _tan(x1):
     return np.tan(x1)
 
 
+@cache_decorator()
 def _log(x1):
     """closure of log for zero arguments, sign-protected"""
     with np.errstate(divide="ignore", invalid="ignore"):
@@ -120,6 +134,10 @@ def _log(x1):
             x1 = x1.mask(x1.abs() <= 0.001, 1.0)
             return np.log(x1.abs()).mask(x1 < -1, np.log(x1.abs()) * np.sign(x1))
         except AttributeError:
+            try:
+                x1 = x1[0]
+            except (TypeError, IndexError):
+                pass
             if np.abs(x1) <= 0.001:
                 return 0.0
             else:
@@ -129,23 +147,28 @@ def _log(x1):
                     return np.log(np.abs(x1))
 
 
+@cache_decorator()
 def _sig(x1):
     """logistic function"""
     return 1 / (1 + np.exp(-x1))
 
 
+@cache_decorator()
 def _add(x1, x2):
     return x1 + x2
 
 
+@cache_decorator()
 def _sub(x1, x2):
     return x1 - x2
 
 
+@cache_decorator()
 def _mul(x1, x2):
     return x1 * x2
 
 
+@cache_decorator()
 def _div(x1, x2):
     """closure of division (x1/x2) for zero denominator"""
     with np.errstate(divide="ignore", invalid="ignore"):
@@ -155,21 +178,25 @@ def _div(x1, x2):
         if isinstance(x2, pd.Series):
             return pd.Series(values, index=x2.index)
 
-        return values.flatten(0)
+        return values.flatten()[0]
 
 
+@cache_decorator()
 def _max(x1, x2):
     return np.maximum(x1, x2)
 
 
+@cache_decorator()
 def _min(x1, x2):
     return np.minimum(x1, x2)
 
 
+@cache_decorator()
 def _mean(x1, x2):
     return (x1 + x2) / 2
 
 
+@cache_decorator()
 def _clear_by_cond(x1, x2, x3):
     """if x1 < x2 (keep NaN if and only if both x1 and x2 are NaN), then 0, else x3"""
     values = np.where(x1 < x2, 0, np.where(~np.isnan(x1) | ~np.isnan(x2), x3, np.nan))
@@ -182,6 +209,7 @@ def _clear_by_cond(x1, x2, x3):
     return np.nan
 
 
+@cache_decorator()
 def _if_then_else(x1, x2, x3):
     """if x1 is nonzero (keep NaN), then x2, else x3"""
     values = np.where(x1, x2, np.where(~np.isnan(x1), x3, np.nan))
@@ -196,6 +224,7 @@ def _if_then_else(x1, x2, x3):
     return np.nan
 
 
+@cache_decorator()
 def _if_cond_then_else(x1, x2, x3, x4):
     """if x1 < x2 (keep NaN if and only if both x1 and x2 are NaN), then x3, else x4"""
     values = np.where(x1 < x2, x3, np.where(~np.isnan(x1) | ~np.isnan(x2), x4, np.nan))
@@ -212,6 +241,7 @@ def _if_cond_then_else(x1, x2, x3, x4):
     return np.nan
 
 
+@cache_decorator()
 def _ts_delay(x1, d: int):
     """x1 d datetimes ago"""
     # return pd.Series(x1).shift(d).values
@@ -221,6 +251,7 @@ def _ts_delay(x1, d: int):
         return np.nan
 
 
+@cache_decorator()
 def _ts_delta(x1, d: int):
     """difference between x1 and x1 d datetimes ago"""
     # return x1 - pd.Series(x1).shift(d).values
@@ -230,6 +261,7 @@ def _ts_delta(x1, d: int):
         return np.nan
 
 
+@cache_decorator()
 def _ts_pct_change(x1, d: int):
     """percentage change of x1 in the last d datetimes"""
     # return _div(_ts_delta(x1, d), x1) * np.sign(x1)
@@ -239,11 +271,13 @@ def _ts_pct_change(x1, d: int):
         return np.nan
 
 
+@cache_decorator()
 def _ts_mean_return(x1, d: int):
     """moving average of percentage change of x1 with one lag"""
     return _ts_mean(_ts_pct_change(x1, 1), d)
 
 
+@cache_decorator()
 def _ts_max(x1, d: int):
     """maximum x1 in the last d datetimes"""
     try:
@@ -254,6 +288,7 @@ def _ts_max(x1, d: int):
         return np.nan
 
 
+@cache_decorator()
 def _ts_min(x1, d: int):
     """minimum x1 in the last d datetimes"""
     try:
@@ -264,6 +299,7 @@ def _ts_min(x1, d: int):
         return np.nan
 
 
+@cache_decorator()
 def _ts_sum(x1, d: int):
     """moving sum"""
     try:
@@ -274,6 +310,7 @@ def _ts_sum(x1, d: int):
         return np.nan
 
 
+@cache_decorator()
 def _ts_product(x1, d: int):
     """moving product"""
     try:
@@ -286,6 +323,7 @@ def _ts_product(x1, d: int):
         return np.nan
 
 
+@cache_decorator()
 def _ts_mean(x1, d: int):
     """moving average"""
     try:
@@ -296,6 +334,7 @@ def _ts_mean(x1, d: int):
         return np.nan
 
 
+@cache_decorator()
 def _ts_std(x1, d: int):
     """moving standard deviation"""
     try:
@@ -306,6 +345,7 @@ def _ts_std(x1, d: int):
         return np.nan
 
 
+@cache_decorator()
 def _ts_median(x1, d: int):
     """moving median"""
     try:
@@ -317,11 +357,13 @@ def _ts_median(x1, d: int):
         return np.nan
 
 
+@cache_decorator()
 def _ts_midpoint(x1, d: int):
     """moving midpoint: (ts_max + ts_min) / 2"""
     return (_ts_max(x1, d) + _ts_min(x1, d)) / 2.0
 
 
+@cache_decorator()
 def _ts_skew(x1, d: int):
     """moving skewness"""
     try:
@@ -332,6 +374,7 @@ def _ts_skew(x1, d: int):
         return np.nan
 
 
+@cache_decorator()
 def _ts_kurt(x1, d: int):
     """moving kurtosis"""
     try:
@@ -342,11 +385,13 @@ def _ts_kurt(x1, d: int):
         return np.nan
 
 
+@cache_decorator()
 def _ts_inverse_cv(x1, d: int):
     """moving inverse of coefficient of variance"""
     return _div(_ts_mean(x1, d), _ts_std(x1, d))
 
 
+@cache_decorator()
 def _ts_cov(x1, x2, d: int):
     """moving covariance of x1 and x2"""
     if ~isinstance(x1, pd.Series) or ~isinstance(x2, pd.Series):
@@ -362,6 +407,7 @@ def _ts_cov(x1, x2, d: int):
     )
 
 
+@cache_decorator()
 def _ts_corr(x1, x2, d: int):
     """moving correlation coefficient of x1 and x2"""
     if ~isinstance(x1, pd.Series) or ~isinstance(x2, pd.Series):
@@ -378,33 +424,39 @@ def _ts_corr(x1, x2, d: int):
     )
 
 
+@cache_decorator()
 def _ts_autocorr(x1, d: int, i: int):
     """moving autocorrelation coefficient between x and x lag i period"""
     x2 = _ts_delay(x1, i)
     return _ts_corr(x1, x2, d)
 
 
+@cache_decorator()
 def _ts_maxmin(x1, d: int):
     """moving maxmin normalization"""
     ts_max, ts_min = _ts_max(x1, d), _ts_min(x1, d)
     return _div(x1 - ts_min, ts_max - ts_min)
 
 
+@cache_decorator()
 def _ts_zscore(x1, d: int):
     """moving zscore standardization"""
     return _div(x1 - _ts_mean(x1, d), _ts_std(x1, d))
 
 
+@cache_decorator()
 def _ts_regression_beta(x1, x2, d: int):
     """slope of regression x1 onto x2 in the last d datetimes"""
     return _div(_ts_cov(x1, x2, d), _ts_std(x2, d) ** 2)
 
 
+@cache_decorator()
 def _ts_regression_alpha(x1, x2, d: int):
     """slope of regression x1 onto x2 in the last d datetimes"""
     return _ts_mean(x1, d) - _ts_mean(x2, d) * _ts_regression_beta(x1, x2, d)
 
 
+@cache_decorator()
 def _ts_linear_slope(x1, d: int):
     """slope of regression x1 in the last d datetimes onto (1, 2, ..., d)"""
     try:
@@ -414,11 +466,13 @@ def _ts_linear_slope(x1, d: int):
         return np.nan
 
 
+@cache_decorator()
 def _ts_linear_intercept(x1, d: int):
     """intercept of regression x1 in the last d datetimes onto (1, 2, ..., d)"""
     return _ts_mean(x1, d) - (1 + d) / 2 * _ts_linear_slope(x1, d)
 
 
+@cache_decorator()
 def _ts_argmax(x1, d: int):
     """position of maximum x1 in the last d datetimes"""
     # return pd.Series(x1).rolling(d).apply(np.argmax, engine="numba", raw=True).values
@@ -434,6 +488,7 @@ def _ts_argmax(x1, d: int):
         return np.nan
 
 
+@cache_decorator()
 def _ts_argmin(x1, d: int):
     """position of minimum x1 in the last d datetimes"""
     # return pd.Series(x1).rolling(d).apply(np.argmin, engine="numba", raw=True).values
@@ -449,11 +504,13 @@ def _ts_argmin(x1, d: int):
         return np.nan
 
 
+@cache_decorator()
 def _ts_argmaxmin(x1, d: int):
     """relative position of maximum x1 to minimum x1 in the last d datetimes"""
     return _ts_argmax(x1, d) - _ts_argmin(x1, d)
 
 
+@cache_decorator()
 def _ts_rank(x1, d: int):
     """moving quantile of current x1"""
     try:
@@ -468,6 +525,7 @@ def _ts_rank(x1, d: int):
         return np.nan
 
 
+@cache_decorator()
 def _ts_ema(x1, d: int):
     """exponential moving average (EMA)"""
     try:
@@ -487,12 +545,14 @@ def _ts_ema(x1, d: int):
         return np.nan
 
 
+@cache_decorator()
 def _ts_dema(x1, d: int):
     """double exponential moving average (DEMA): 2 * EMA(x1) - EMA(EMA(x1))"""
     ema = _ts_ema(x1, d)
     return 2 * ema - _ts_ema(ema, d)
 
 
+@cache_decorator()
 def _ts_kama(x1, d1: int, d2: int, d3: int):
     """Kaufman's adaptive moving average (KAMA):
     1) KAMA is an exponential moving average with an adaptive alpha SC
@@ -529,6 +589,7 @@ def _ts_kama(x1, d1: int, d2: int, d3: int):
         return np.nan
 
 
+@cache_decorator()
 def _ts_AROONOSC(high, low, d: int):
     """Aroon Oscillator: Aroon-up - Aroon-down
     Aroon-Up = (d - HH) * d (HH: number of datetimes ago the highest price occurred)
@@ -536,11 +597,13 @@ def _ts_AROONOSC(high, low, d: int):
     return (_ts_argmax(high, d) - _ts_argmin(low, d)) / d
 
 
+@cache_decorator()
 def _ts_WR(high, low, close, d: int):
     """Williams %R: (H_{d} - C) / (H_{d} - L_{d})"""
     return (_ts_max(high, d) - close) / (_ts_max(high, d) - _ts_min(low, d))
 
 
+@cache_decorator()
 def _ts_CCI(high, low, close, d: int):
     """Commodity Channel Index: (TP - MA) / (0.015 * MD)
     TP (Typical Price) = (High + Low + Close) / 3
@@ -552,6 +615,7 @@ def _ts_CCI(high, low, close, d: int):
     return _div(TP - MA, 0.015 * MD)
 
 
+@cache_decorator()
 def _ts_ATR(high, low, close, d: int):
     """Average True Range: ts_mean(TR, d)
     TR (True Range) = max(High - Low, abs(High - previous Close), abs(Low - previous Close))
@@ -564,11 +628,13 @@ def _ts_ATR(high, low, close, d: int):
     return _ts_mean(TR, d)
 
 
+@cache_decorator()
 def _ts_NATR(high, low, close, d: int):
     """Normalized Average True Range: ATR / Close * 100"""
     return _ts_ATR(high, low, close, d) / close * 100
 
 
+@cache_decorator()
 def _ts_ADX(high, low, close, d: int):
     """Average Directional Index: ts_mean(DX, d)
     DX = abs(+DI - -DI) / abs(+DI + -DI) * 100
@@ -584,6 +650,7 @@ def _ts_ADX(high, low, close, d: int):
     return _ts_mean(DX, d)
 
 
+@cache_decorator()
 def _ts_MFI(high, low, close, volume, d: int):
     """Money Flow Index: 100 - (100 / (1 + MFR))
     MFR (Money Flow Ratio) = sum(PMF) / sum(NMF)

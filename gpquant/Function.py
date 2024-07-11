@@ -541,7 +541,7 @@ def _ts_ema(x1, d: int):
             .swaplevel()
             .sort_index()
         )
-    except (AttributeError, AssertionError):
+    except:
         return np.nan
 
 

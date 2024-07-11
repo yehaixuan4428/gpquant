@@ -195,6 +195,11 @@ class SymbolicRegressor:
         print(f"------------Generation {str(i + 1).rjust(2)}------------")
         print(f"best estimator: {self.best_estimator}")
         print(f"best fitness: {self.best_fitness}")
+        if self.last_best_fitness is not None and self.last_best_fitness is not np.nan:
+            error = np.abs(
+                (self.best_fitness - self.last_best_fitness) / self.last_best_fitness
+            )
+            print(f"best fitness improve: {error:.3%}")
 
     def fit(self, X: pd.DataFrame, y: pd.Series) -> None:
         self.last_best_fitness = None

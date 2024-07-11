@@ -39,9 +39,9 @@ def __rolling(x1: pd.Series, d: int, function=None, **kwargs) -> np.ndarray:
             #     result[i] = np.nan
             result[: d - 1] = np.nan
             return pd.Series(result, index=x1.index)
-        except TypeError:
+        except:
             return window
-    except (AttributeError, ValueError):
+    except:
         return np.nan
 
 
@@ -56,7 +56,7 @@ def __scalar_ema(window: pd.DataFrame, alpha: float) -> np.ndarray:
             np.broadcast_to(np.arange(window.shape[1]), (1, window.shape[1]))
         )
         return np.nansum(window, axis=1) * alpha
-    except AttributeError:
+    except:
         return np.nan
 
 
@@ -97,7 +97,7 @@ def _inv(x1):
     with np.errstate(divide="ignore", invalid="ignore"):
         try:
             return (1.0 / x1).mask(x1.abs() <= 0.001, 0.0)
-        except AttributeError:
+        except:
             if isinstance(x1, np.ndarray):
                 x1 = x1[0]
             if np.abs(x1) > 0.001:
@@ -133,10 +133,10 @@ def _log(x1):
         try:
             x1 = x1.mask(x1.abs() <= 0.001, 1.0)
             return np.log(x1.abs()).mask(x1 < -1, np.log(x1.abs()) * np.sign(x1))
-        except AttributeError:
+        except:
             try:
                 x1 = x1[0]
-            except (TypeError, IndexError):
+            except:
                 pass
             if np.abs(x1) <= 0.001:
                 return 0.0
@@ -247,7 +247,7 @@ def _ts_delay(x1, d: int):
     # return pd.Series(x1).shift(d).values
     try:
         return x1.groupby(level=1, group_keys=False).shift(d)
-    except AttributeError:
+    except:
         return np.nan
 
 
@@ -257,7 +257,7 @@ def _ts_delta(x1, d: int):
     # return x1 - pd.Series(x1).shift(d).values
     try:
         return x1.groupby(level=1, group_keys=False).diff(d)
-    except AttributeError:
+    except:
         return np.nan
 
 
@@ -267,7 +267,7 @@ def _ts_pct_change(x1, d: int):
     # return _div(_ts_delta(x1, d), x1) * np.sign(x1)
     try:
         return x1.groupby(level=1, group_keys=False).pct_change(d, fill_method=None)
-    except AttributeError:
+    except:
         return np.nan
 
 
@@ -284,7 +284,7 @@ def _ts_max(x1, d: int):
         return x1.groupby(level=1, group_keys=False).apply(
             lambda x: x.rolling(d, min_periods=int(d / 2)).max()
         )
-    except AttributeError:
+    except:
         return np.nan
 
 
@@ -295,7 +295,7 @@ def _ts_min(x1, d: int):
         return x1.groupby(level=1, group_keys=False).apply(
             lambda x: x.rolling(d, min_periods=int(d / 2)).min()
         )
-    except AttributeError:
+    except:
         return np.nan
 
 
@@ -306,7 +306,7 @@ def _ts_sum(x1, d: int):
         return x1.groupby(level=1, group_keys=False).apply(
             lambda x: x.rolling(d, min_periods=int(d / 2)).sum()
         )
-    except AttributeError:
+    except:
         return np.nan
 
 
@@ -319,7 +319,7 @@ def _ts_product(x1, d: int):
             .groupby(level=1, group_keys=False)
             .apply(lambda x: x.rolling(d, min_periods=int(d / 2)).sum())
         )
-    except AttributeError:
+    except:
         return np.nan
 
 
@@ -330,7 +330,7 @@ def _ts_mean(x1, d: int):
         return x1.groupby(level=1, group_keys=False).apply(
             lambda x: x.rolling(d, min_periods=int(d / 2)).mean()
         )
-    except AttributeError:
+    except:
         return np.nan
 
 
@@ -341,7 +341,7 @@ def _ts_std(x1, d: int):
         return x1.groupby(level=1, group_keys=False).apply(
             lambda x: x.rolling(d, min_periods=int(d / 2)).std()
         )
-    except AttributeError:
+    except:
         return np.nan
 
 
@@ -353,7 +353,7 @@ def _ts_median(x1, d: int):
             lambda x: x.rolling(d, min_periods=int(d / 2)).std()
         )
 
-    except AttributeError:
+    except:
         return np.nan
 
 
@@ -370,7 +370,7 @@ def _ts_skew(x1, d: int):
         return x1.groupby(level=1, group_keys=False).apply(
             lambda x: x.rolling(d, min_periods=int(d / 2)).skew()
         )
-    except AttributeError:
+    except:
         return np.nan
 
 
@@ -381,7 +381,7 @@ def _ts_kurt(x1, d: int):
         return x1.groupby(level=1, group_keys=False).apply(
             lambda x: x.rolling(d, min_periods=int(d / 2)).kurt()
         )
-    except AttributeError:
+    except:
         return np.nan
 
 
@@ -462,7 +462,7 @@ def _ts_linear_slope(x1, d: int):
     try:
         x2 = pd.Series(np.arange(len(x1)) + 1, index=x1.index)
         return _div(_ts_cov(x1, x2, d), _ts_std(x2, d) ** 2)
-    except (AttributeError, TypeError):
+    except:
         return np.nan
 
 
@@ -484,7 +484,7 @@ def _ts_argmax(x1, d: int):
             .droplevel(0)
             .sort_index()
         )
-    except AttributeError:
+    except:
         return np.nan
 
 
@@ -500,7 +500,7 @@ def _ts_argmin(x1, d: int):
             .droplevel(0)
             .sort_index()
         )
-    except AttributeError:
+    except:
         return np.nan
 
 
@@ -521,7 +521,7 @@ def _ts_rank(x1, d: int):
             .droplevel(0)
             .sort_index()
         )
-    except AttributeError:
+    except:
         return np.nan
 
 
@@ -566,7 +566,6 @@ def _ts_kama(x1, d1: int, d2: int, d3: int):
     4) d is lag period, f is fastest smoothing constant, s is slowest smoothing constant
     d = d1, f = 1 / (1 + d2), s = 1 / (1 + d3)"""
     try:
-
         def func(x1, d1, d2, d3):
             d, f, s = (
                 d1,
@@ -585,7 +584,7 @@ def _ts_kama(x1, d1: int, d2: int, d3: int):
             .swaplevel()
             .sort_index()
         )
-    except AttributeError:
+    except:
         return np.nan
 
 

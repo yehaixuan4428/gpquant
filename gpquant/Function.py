@@ -60,38 +60,31 @@ def __scalar_ema(window: pd.DataFrame, alpha: float) -> np.ndarray:
         return np.nan
 
 
-@cache_decorator()
 def _square(x1):
     return x1**2
 
 
-@cache_decorator()
 def _sqrt(x1):
     """sign-protected"""
     return np.sqrt(np.abs(x1)) * np.sign(x1)
 
 
-@cache_decorator()
 def _cube(x1):
     return x1**3
 
 
-@cache_decorator()
 def _cbrt(x1):
     return np.cbrt(x1)
 
 
-@cache_decorator()
 def _sign(x1):
     return np.sign(x1)
 
 
-@cache_decorator()
 def _neg(x1):
     return -x1
 
 
-@cache_decorator()
 def _inv(x1):
     """closure of inverse for zero arguments"""
     with np.errstate(divide="ignore", invalid="ignore"):
@@ -106,27 +99,22 @@ def _inv(x1):
                 return 0.0
 
 
-@cache_decorator()
 def _abs(x1):
     return np.abs(x1)
 
 
-@cache_decorator()
 def _sin(x1):
     return np.sin(x1)
 
 
-@cache_decorator()
 def _cos(x1):
     return np.cos(x1)
 
 
-@cache_decorator()
 def _tan(x1):
     return np.tan(x1)
 
 
-@cache_decorator()
 def _log(x1):
     """closure of log for zero arguments, sign-protected"""
     with np.errstate(divide="ignore", invalid="ignore"):
@@ -147,28 +135,23 @@ def _log(x1):
                     return np.log(np.abs(x1))
 
 
-@cache_decorator()
 def _sig(x1):
     """logistic function"""
     return 1 / (1 + np.exp(-x1))
 
 
-@cache_decorator()
 def _add(x1, x2):
     return x1 + x2
 
 
-@cache_decorator()
 def _sub(x1, x2):
     return x1 - x2
 
 
-@cache_decorator()
 def _mul(x1, x2):
     return x1 * x2
 
 
-@cache_decorator()
 def _div(x1, x2):
     """closure of division (x1/x2) for zero denominator"""
     with np.errstate(divide="ignore", invalid="ignore"):
@@ -181,22 +164,18 @@ def _div(x1, x2):
         return values.flatten()[0]
 
 
-@cache_decorator()
 def _max(x1, x2):
     return np.maximum(x1, x2)
 
 
-@cache_decorator()
 def _min(x1, x2):
     return np.minimum(x1, x2)
 
 
-@cache_decorator()
 def _mean(x1, x2):
     return (x1 + x2) / 2
 
 
-@cache_decorator()
 def _clear_by_cond(x1, x2, x3):
     """if x1 < x2 (keep NaN if and only if both x1 and x2 are NaN), then 0, else x3"""
     values = np.where(x1 < x2, 0, np.where(~np.isnan(x1) | ~np.isnan(x2), x3, np.nan))
@@ -209,7 +188,6 @@ def _clear_by_cond(x1, x2, x3):
     return np.nan
 
 
-@cache_decorator()
 def _if_then_else(x1, x2, x3):
     """if x1 is nonzero (keep NaN), then x2, else x3"""
     values = np.where(x1, x2, np.where(~np.isnan(x1), x3, np.nan))
@@ -224,7 +202,6 @@ def _if_then_else(x1, x2, x3):
     return np.nan
 
 
-@cache_decorator()
 def _if_cond_then_else(x1, x2, x3, x4):
     """if x1 < x2 (keep NaN if and only if both x1 and x2 are NaN), then x3, else x4"""
     values = np.where(x1 < x2, x3, np.where(~np.isnan(x1) | ~np.isnan(x2), x4, np.nan))
@@ -238,6 +215,12 @@ def _if_cond_then_else(x1, x2, x3, x4):
         return pd.Series(values, index=x4.index)
 
     '''disable invalid operation if all variables are float'''
+    return np.nan
+
+
+def _cs_count(x):
+    if isinstance(x, pd.Series):
+        return x.groupby(level=0).transform('size')
     return np.nan
 
 
@@ -281,9 +264,7 @@ def _ts_mean_return(x1, d: int):
 def _ts_max(x1, d: int):
     """maximum x1 in the last d datetimes"""
     try:
-        return x1.groupby(level=1, group_keys=False).apply(
-            lambda x: x.rolling(d, min_periods=int(d / 2)).max()
-        )
+        return x1.groupby(level=1, group_keys=False).rolling(d, int(d/2)).max().droplevel(0).swaplevel().sort_index()
     except:
         return np.nan
 
@@ -292,9 +273,7 @@ def _ts_max(x1, d: int):
 def _ts_min(x1, d: int):
     """minimum x1 in the last d datetimes"""
     try:
-        return x1.groupby(level=1, group_keys=False).apply(
-            lambda x: x.rolling(d, min_periods=int(d / 2)).min()
-        )
+        return x1.groupby(level=1, group_keys=False).rolling(d, int(d/2)).min().droplevel(0).swaplevel().sort_index()
     except:
         return np.nan
 
@@ -303,9 +282,7 @@ def _ts_min(x1, d: int):
 def _ts_sum(x1, d: int):
     """moving sum"""
     try:
-        return x1.groupby(level=1, group_keys=False).apply(
-            lambda x: x.rolling(d, min_periods=int(d / 2)).sum()
-        )
+        return x1.groupby(level=1, group_keys=False).rolling(d, int(d/2)).sum().droplevel(0).swaplevel().sort_index()
     except:
         return np.nan
 
@@ -314,11 +291,8 @@ def _ts_sum(x1, d: int):
 def _ts_product(x1, d: int):
     """moving product"""
     try:
-        return (
-            np.exp(_log(x1))
-            .groupby(level=1, group_keys=False)
-            .apply(lambda x: x.rolling(d, min_periods=int(d / 2)).sum())
-        )
+        x1 = _log(x1)
+        return np.exp(x1.groupby(level=1, group_keys=False).rolling(d, int(d/2)).sum().droplevel(0).swaplevel().sort_index())
     except:
         return np.nan
 
@@ -327,9 +301,7 @@ def _ts_product(x1, d: int):
 def _ts_mean(x1, d: int):
     """moving average"""
     try:
-        return x1.groupby(level=1, group_keys=False).apply(
-            lambda x: x.rolling(d, min_periods=int(d / 2)).mean()
-        )
+        return x1.groupby(level=1, group_keys=False).rolling(d, int(d/2)).mean().droplevel(0).swaplevel().sort_index()
     except:
         return np.nan
 
@@ -338,9 +310,7 @@ def _ts_mean(x1, d: int):
 def _ts_std(x1, d: int):
     """moving standard deviation"""
     try:
-        return x1.groupby(level=1, group_keys=False).apply(
-            lambda x: x.rolling(d, min_periods=int(d / 2)).std()
-        )
+        return x1.groupby(level=1, group_keys=False).rolling(d, int(d/2)).std().droplevel(0).swaplevel().sort_index()
     except:
         return np.nan
 
@@ -349,10 +319,7 @@ def _ts_std(x1, d: int):
 def _ts_median(x1, d: int):
     """moving median"""
     try:
-        return x1.groupby(level=1, group_keys=False).apply(
-            lambda x: x.rolling(d, min_periods=int(d / 2)).std()
-        )
-
+        return x1.groupby(level=1, group_keys=False).rolling(d, int(d/2)).median().droplevel(0).swaplevel().sort_index()
     except:
         return np.nan
 
@@ -367,9 +334,7 @@ def _ts_midpoint(x1, d: int):
 def _ts_skew(x1, d: int):
     """moving skewness"""
     try:
-        return x1.groupby(level=1, group_keys=False).apply(
-            lambda x: x.rolling(d, min_periods=int(d / 2)).skew()
-        )
+        return x1.groupby(level=1, group_keys=False).rolling(d, int(d/2)).skew().droplevel(0).swaplevel().sort_index()
     except:
         return np.nan
 
@@ -378,9 +343,7 @@ def _ts_skew(x1, d: int):
 def _ts_kurt(x1, d: int):
     """moving kurtosis"""
     try:
-        return x1.groupby(level=1, group_keys=False).apply(
-            lambda x: x.rolling(d, min_periods=int(d / 2)).kurt()
-        )
+        return x1.groupby(level=1, group_keys=False).rolling(d, int(d/2)).kurt().droplevel(0).swaplevel().sort_index()
     except:
         return np.nan
 
@@ -517,7 +480,7 @@ def _ts_rank(x1, d: int):
         return (
             x1.groupby(level=1)
             .rolling(d, min_periods=int(d / 2))
-            .rank(pct=True)
+            .rank()
             .droplevel(0)
             .sort_index()
         )
@@ -566,6 +529,7 @@ def _ts_kama(x1, d1: int, d2: int, d3: int):
     4) d is lag period, f is fastest smoothing constant, s is slowest smoothing constant
     d = d1, f = 1 / (1 + d2), s = 1 / (1 + d3)"""
     try:
+
         def func(x1, d1, d2, d3):
             d, f, s = (
                 d1,
@@ -588,7 +552,6 @@ def _ts_kama(x1, d1: int, d2: int, d3: int):
         return np.nan
 
 
-@cache_decorator()
 def _ts_AROONOSC(high, low, d: int):
     """Aroon Oscillator: Aroon-up - Aroon-down
     Aroon-Up = (d - HH) * d (HH: number of datetimes ago the highest price occurred)
@@ -596,7 +559,6 @@ def _ts_AROONOSC(high, low, d: int):
     return (_ts_argmax(high, d) - _ts_argmin(low, d)) / d
 
 
-@cache_decorator()
 def _ts_WR(high, low, close, d: int):
     """Williams %R: (H_{d} - C) / (H_{d} - L_{d})"""
     return (_ts_max(high, d) - close) / (_ts_max(high, d) - _ts_min(low, d))
@@ -619,15 +581,11 @@ def _ts_ATR(high, low, close, d: int):
     """Average True Range: ts_mean(TR, d)
     TR (True Range) = max(High - Low, abs(High - previous Close), abs(Low - previous Close))
     """
-    TR = np.maximum(
-        high - low,
-        high - close.groupby(level=1).shift(),
-        low - close.groupby(level=1).shift(),
-    )
+    close_shift = close.groupby(level=1).shift()
+    TR = np.maximum(high - low, high - close_shift, low - close_shift)
     return _ts_mean(TR, d)
 
 
-@cache_decorator()
 def _ts_NATR(high, low, close, d: int):
     """Normalized Average True Range: ATR / Close * 100"""
     return _ts_ATR(high, low, close, d) / close * 100
@@ -698,6 +656,8 @@ if_then_else3 = Function(function=_if_then_else, name="if_then_else", arity=3)
 if_cond_then_else4 = Function(
     function=_if_cond_then_else, name="if_cond_then_else", arity=4
 )
+
+cs_count1 = Function(function=_cs_count, name='cs_count', arity=1)
 
 # 3. time-series functions (time series arguments with time window, vectorized computation)
 # 3.1. difference
@@ -827,6 +787,7 @@ function_map = {
     "clear by cond": clear_by_cond3,
     "if then else": if_then_else3,
     "if cond then else": if_cond_then_else4,
+    "cs count": cs_count1,
     "ts delay": ts_delay2,
     "ts delta": ts_delta2,
     "ts pct change": ts_pct_change2,

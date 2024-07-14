@@ -214,7 +214,7 @@ class SymbolicRegressor:
                 )
             else:
                 self.fitness = Parallel(n_jobs=self.pool_size)(
-                    delayed(tree.fitness)(X, y) for tree in self.trees
+                    delayed(tree.fitness)(X, y) for tree in tqdm(self.trees)
                 )
 
             self.best_estimator = self.trees[

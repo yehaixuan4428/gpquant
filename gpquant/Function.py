@@ -181,44 +181,53 @@ def _mean(x1, x2):
 
 def _clear_by_cond(x1, x2, x3):
     """if x1 < x2 (keep NaN if and only if both x1 and x2 are NaN), then 0, else x3"""
-    values = np.where(x1 < x2, 0, np.where(~np.isnan(x1) | ~np.isnan(x2), x3, np.nan))
-    if isinstance(x1, pd.Series):
-        return pd.Series(values, index=x1.index)
-    if isinstance(x2, pd.Series):
-        return pd.Series(values, index=x2.index)
-    if isinstance(x3, pd.Series):
-        return pd.Series(values, index=x3.index)
-    return np.nan
+    try:
+        values = np.where(x1 < x2, 0, np.where(~np.isnan(x1) | ~np.isnan(x2), x3, np.nan))
+        if isinstance(x1, pd.Series):
+            return pd.Series(values, index=x1.index)
+        if isinstance(x2, pd.Series):
+            return pd.Series(values, index=x2.index)
+        if isinstance(x3, pd.Series):
+            return pd.Series(values, index=x3.index)
+        return np.nan
+    except:
+        return np.nan
 
 
 def _if_then_else(x1, x2, x3):
-    """if x1 is nonzero (keep NaN), then x2, else x3"""
-    values = np.where(x1, x2, np.where(~np.isnan(x1), x3, np.nan))
-    if isinstance(x1, pd.Series):
-        return pd.Series(values, index=x1.index)
-    if isinstance(x2, pd.Series):
-        return pd.Series(values, index=x2.index)
-    if isinstance(x3, pd.Series):
-        return pd.Series(values, index=x3.index)
+    try:
+        """if x1 is nonzero (keep NaN), then x2, else x3"""
+        values = np.where(x1, x2, np.where(~np.isnan(x1), x3, np.nan))
+        if isinstance(x1, pd.Series):
+            return pd.Series(values, index=x1.index)
+        if isinstance(x2, pd.Series):
+            return pd.Series(values, index=x2.index)
+        if isinstance(x3, pd.Series):
+            return pd.Series(values, index=x3.index)
 
-    '''disable invalid operation if all variables are float'''
-    return np.nan
+        '''disable invalid operation if all variables are float'''
+        return np.nan
+    except:
+        return np.nan
 
 
 def _if_cond_then_else(x1, x2, x3, x4):
-    """if x1 < x2 (keep NaN if and only if both x1 and x2 are NaN), then x3, else x4"""
-    values = np.where(x1 < x2, x3, np.where(~np.isnan(x1) | ~np.isnan(x2), x4, np.nan))
-    if isinstance(x1, pd.Series):
-        return pd.Series(values, index=x1.index)
-    if isinstance(x2, pd.Series):
-        return pd.Series(values, index=x2.index)
-    if isinstance(x3, pd.Series):
-        return pd.Series(values, index=x3.index)
-    if isinstance(x4, pd.Series):
-        return pd.Series(values, index=x4.index)
+    try:
+        """if x1 < x2 (keep NaN if and only if both x1 and x2 are NaN), then x3, else x4"""
+        values = np.where(x1 < x2, x3, np.where(~np.isnan(x1) | ~np.isnan(x2), x4, np.nan))
+        if isinstance(x1, pd.Series):
+            return pd.Series(values, index=x1.index)
+        if isinstance(x2, pd.Series):
+            return pd.Series(values, index=x2.index)
+        if isinstance(x3, pd.Series):
+            return pd.Series(values, index=x3.index)
+        if isinstance(x4, pd.Series):
+            return pd.Series(values, index=x4.index)
 
-    '''disable invalid operation if all variables are float'''
-    return np.nan
+        '''disable invalid operation if all variables are float'''
+        return np.nan
+    except:
+        return np.nan
 
 
 def _cs_count(x):

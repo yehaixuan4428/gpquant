@@ -215,13 +215,14 @@ class SymbolicRegressor:
             else:
                 t = tqdm(self.trees)
 
-                def func(tree_func, X, y, tree_describ):
-                    print(tree_describ)
-                    return tree_func(X, y)
+                # def func(tree_func, X, y, tree_describ):
+                #     print(tree_describ)
+                #     return tree_func(X, y)
 
                 self.fitness = Parallel(n_jobs=self.pool_size)(
-                    # delayed(tree.fitness)(X, y) for tree in t
-                    delayed(func)(tree.fitness, X, y, str(tree.nodes[0]))
+                    delayed(tree.fitness)(X, y)
+                    for tree in t
+                    # delayed(func)(tree.fitness, X, y, str(tree.nodes[0]))
                     for tree in t
                 )
 

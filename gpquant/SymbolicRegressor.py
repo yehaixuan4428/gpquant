@@ -35,7 +35,7 @@ class SymbolicRegressor:
         transformer: str = None,
         transformer_kwargs: dict = None,
         parsimony_coefficient: float = 0,
-        cache_dir: str = './cache',
+        cache_dir: str = "./cache",
         pool_size: int = 1,
         best_n_children: int = 1,
     ) -> None:
@@ -213,8 +213,16 @@ class SymbolicRegressor:
                     [tree.fitness(X, y) for tree in tqdm(self.trees)]
                 )
             else:
+                t = tqdm(self.trees)
+
+                def func(tree_func, X, y, tree_describ):
+                    print(tree_describ)
+                    return tree_func(X, y)
+
                 self.fitness = Parallel(n_jobs=self.pool_size)(
-                    delayed(tree.fitness)(X, y) for tree in tqdm(self.trees)
+                    # delayed(tree.fitness)(X, y) for tree in t
+                    delayed(func)(tree.fitness, X, y, str(tree.nodes[0]))
+                    for tree in t
                 )
 
             self.best_estimator = self.trees[

@@ -11,7 +11,7 @@ from .Function import Function
 
 
 class Node:
-    def __init__(self, data, is_ts: float = False, cache_dir: str = './cache'):
+    def __init__(self, data, is_ts: float = False, cache_dir: str = "./cache"):
         self.data = data  # Function (function), str (variable) or int (constant)
         self.parent: "Node" = None
         self.children: list[Node] = []  # nodes in order of function arguments
@@ -74,7 +74,7 @@ class SyntaxTree:
         transformer: Backtester = None,
         transformer_kwargs: dict = None,
         parsimony_coefficient: float = 0,
-        cache_dir: str = './cache',
+        cache_dir: str = "./cache",
     ) -> None:
         """
         @param id: tree id, the data in the parent node of root for locating it

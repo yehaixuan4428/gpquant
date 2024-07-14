@@ -21,7 +21,10 @@ class Function:
         self.fixed_params = [] if fixed_params is None else fixed_params
 
     def __call__(self, *args, cache_dir: str = './cache'):
-        return self.function(*args, cache_dir=cache_dir)
+        try:
+            return self.function(*args, cache_dir=cache_dir)
+        except TypeError:
+            return self.function(*args)
 
 
 def __rolling(x1: pd.Series, d: int, function=None, **kwargs) -> np.ndarray:

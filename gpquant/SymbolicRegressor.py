@@ -38,7 +38,10 @@ class SymbolicRegressor:
         cache_dir: str = "./cache",
         pool_size: int = 1,
         best_n_children: int = 1,
+        seed: int = 32
     ) -> None:
+        self.seed = seed
+        random.seed(seed)
         os.makedirs(cache_dir, exist_ok=True)
         self.cache_dir: str = cache_dir
         self.pool_size = pool_size
@@ -93,6 +96,7 @@ class SymbolicRegressor:
                 transformer_kwargs,
                 parsimony_coefficient,
                 cache_dir,
+                seed
             ):
                 return SyntaxTree(
                     id,
@@ -108,6 +112,7 @@ class SymbolicRegressor:
                     transformer_kwargs,
                     parsimony_coefficient,
                     cache_dir,
+                    seed
                 )
 
             self.trees = Parallel(n_jobs=self.pool_size)(
@@ -125,6 +130,7 @@ class SymbolicRegressor:
                     self.transformer_kwargs,
                     self.parsimony_coefficient,
                     self.cache_dir,
+                    self.seed
                 )
                 for id in range(self.population_size)
             )
@@ -145,6 +151,7 @@ class SymbolicRegressor:
                         transformer_kwargs=self.transformer_kwargs,
                         parsimony_coefficient=self.parsimony_coefficient,
                         cache_dir=self.cache_dir,
+                        seed = self.seed
                     )
                 )
 
@@ -201,7 +208,7 @@ class SymbolicRegressor:
             )
             print(f"best fitness improve: {error:.3%}")
 
-    def fit(self, X: pd.DataFrame, y: pd.Series) -> None:
+    def fit(self, X: pd.DataFrame, y: pd.Series, is_cached: bool = False) -> None:
         self.last_best_fitness = None
         print("Build init trees...")
         self.__build()
@@ -210,7 +217,7 @@ class SymbolicRegressor:
 
             if self.pool_size == 1:
                 self.fitness = np.array(
-                    [tree.fitness(X, y) for tree in tqdm(self.trees)]
+                    [tree.fitness(X, y, is_cached) for tree in tqdm(self.trees)]
                 )
             else:
                 t = tqdm(self.trees)
@@ -220,11 +227,13 @@ class SymbolicRegressor:
                 #     return tree_func(X, y)
 
                 self.fitness = Parallel(n_jobs=self.pool_size)(
-                    delayed(tree.fitness)(X, y)
+                    delayed(tree.fitness)(X, y, is_cached)
                     for tree in t
                     # delayed(func)(tree.fitness, X, y, str(tree.nodes[0]))
-                    for tree in t
+                    # for tree in t
                 )
+
+            print("Generation fitnesses are calculated...")
 
             self.best_estimator = self.trees[
                 np.nanargmax(self.metric.sign * self.fitness)

@@ -28,7 +28,9 @@ class FileLock:
 def cache_decorator():
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
-        def wrapper(*args, cache_dir: str = './cache', **kwargs) -> Any:
+        def wrapper(
+            *args, cache_dir: str = './cache', is_cached: bool = False, **kwargs
+        ) -> Any:
             # this is called in the top layer. So cache_dir exists
             # os.makedirs(cache_dir, exist_ok=True)
 
@@ -63,7 +65,7 @@ def cache_decorator():
 
                 result = func(*args, **kwargs_without_cache_dir)
 
-                if isinstance(result, pd.Series):
+                if isinstance(result, pd.Series) and is_cached:
                     with open(cache_path, 'wb') as f:
                         pickle.dump(result, f)
 

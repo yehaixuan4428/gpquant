@@ -31,11 +31,13 @@ class Node:
             else:
                 return f"{self.data}"
 
-    def __call__(self, X: pd.DataFrame):
+    def __call__(self, X: pd.DataFrame, is_cached: bool = False):
         if isinstance(self.data, Function):
             fixed_var = [X[param] for param in self.data.fixed_params]
             free_var = [node(X) for node in self.children]
-            return self.data(*fixed_var, *free_var, cache_dir=self.cache_dir)
+            return self.data(
+                *fixed_var, *free_var, cache_dir=self.cache_dir, is_cached=is_cached
+            )
         elif isinstance(self.data, str):
             return X[self.data]
         elif self.is_ts:
@@ -75,6 +77,7 @@ class SyntaxTree:
         transformer_kwargs: dict = None,
         parsimony_coefficient: float = 0,
         cache_dir: str = "./cache",
+        seed: int = 32
     ) -> None:
         """
         @param id: tree id, the data in the parent node of root for locating it
@@ -105,6 +108,10 @@ class SyntaxTree:
         self.transformer_kwargs = transformer_kwargs
         self.parsimony_coefficient = parsimony_coefficient
         self.ttl_shift = 0  # int; sum of d as time-series constant
+        self.seed = seed
+
+        random.seed(seed)
+
         self.__build()
         self.nodes = self.__flatten()  # list; flattened tree
 
@@ -227,7 +234,7 @@ class SyntaxTree:
         else:
             return random.choice(candidates)
 
-    def execute(self, X: pd.DataFrame) -> Any:
+    def execute(self, X: pd.DataFrame, is_cached: bool = False) -> Any:
         """
         Execute the program according to X
         @param X: training data
@@ -235,7 +242,7 @@ class SyntaxTree:
         # outcome = np.hstack(
         #     [np.full(self.ttl_shift, np.nan), self.nodes[0](X)[self.ttl_shift :]]
         # )
-        outcome = self.nodes[0](X)
+        outcome = self.nodes[0](X, is_cached)
         if not isinstance(outcome, pd.Series):
             outcome = pd.Series(np.nan, X.index)
 
@@ -243,7 +250,9 @@ class SyntaxTree:
             outcome = self.transformer(X, outcome, **self.transformer_kwargs)
         return pd.Series(outcome, index=X.index)
 
-    def fitness(self, X: pd.DataFrame, benchmark: pd.Series) -> float:
+    def fitness(
+        self, X: pd.DataFrame, benchmark: pd.Series, is_cached: bool = False
+    ) -> float:
         """
         Evaluate the penalized fitness of the program according to X, benchmark
         @param X: training data
@@ -251,7 +260,7 @@ class SyntaxTree:
         """
         if self.metric is None:
             raise ValueError("metric must be set")
-        raw_fitness = self.metric(benchmark, self.execute(X))
+        raw_fitness = self.metric(benchmark, self.execute(X, is_cached))
         penalty = self.parsimony_coefficient * len(self) * self.metric.sign
         return raw_fitness - penalty
 

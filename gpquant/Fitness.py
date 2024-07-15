@@ -51,6 +51,13 @@ def _sectional_ic(y: pd.Series, y_pred: pd.Series) -> float:
     corr = y.groupby(level=0).corr().iloc[::2, 1].mean()
     return np.abs(corr)
 
+def _sectional_ic_rank(y: pd.Series, y_pred: pd.Series) -> float:
+    # return np.abs(y.groupby(level=0).corr(y_pred, method="spearman").mean())
+    y = y.to_frame("y")
+    y["y_pred"] = y_pred.values
+    corr = y.groupby(level=0).corr(method = 'spearman').iloc[::2, 1].mean()
+    return np.abs(corr)
+
 
 # fitness indicator
 ann_return = Fitness(_ann_return, greater_is_better=True)
@@ -59,6 +66,7 @@ mean_absolute_error = Fitness(_mean_absolute_error, greater_is_better=False)
 mean_square_error = Fitness(_mean_square_error, greater_is_better=False)
 direction_accuracy = Fitness(_direction_accuracy, greater_is_better=True)
 sectional_ic = Fitness(_sectional_ic, greater_is_better=True)
+sectional_ic_rank = Fitness(_sectional_ic_rank, greater_is_better=True)
 
 
 fitness_map = {
@@ -68,4 +76,5 @@ fitness_map = {
     "mean square error": mean_square_error,
     "direction accuracy": direction_accuracy,
     "sectional ic": sectional_ic,
+    "sectional ic rank": sectional_ic_rank,
 }

@@ -76,9 +76,9 @@ if __name__ == "__main__":
     assert isinstance(output, pd.Series), type(output)
     np.testing.assert_array_equal(output.index, data[0].index)
     output = func(vars[0])
-    assert isinstance(output, np.float64) | isinstance(output, np.float64), type(output)
+    assert isinstance(output, float) | isinstance(output, np.float64), type(output)
     output = func(vars_float[0])
-    assert isinstance(output, np.float64) | isinstance(output, np.float64), type(output)
+    assert isinstance(output, float) | isinstance(output, np.float64), type(output)
 
     from gpquant.Function import _abs as func
 
@@ -88,7 +88,7 @@ if __name__ == "__main__":
     output = func(vars[0])
     assert isinstance(output, np.int64) | isinstance(output, np.int64), type(output)
     output = func(vars_float[0])
-    assert isinstance(output, np.float64) | isinstance(output, np.float64), type(output)
+    assert isinstance(output, float) | isinstance(output, np.float64), type(output)
 
     from gpquant.Function import _sin as func
 
@@ -96,9 +96,9 @@ if __name__ == "__main__":
     assert isinstance(output, pd.Series), type(output)
     np.testing.assert_array_equal(output.index, data[0].index)
     output = func(vars[0])
-    assert isinstance(output, np.float64) | isinstance(output, np.float64), type(output)
+    assert isinstance(output, float) | isinstance(output, np.float64), type(output)
     output = func(vars_float[0])
-    assert isinstance(output, np.float64) | isinstance(output, np.float64), type(output)
+    assert isinstance(output, float) | isinstance(output, np.float64), type(output)
 
     from gpquant.Function import _cos as func
 
@@ -106,9 +106,9 @@ if __name__ == "__main__":
     assert isinstance(output, pd.Series), type(output)
     np.testing.assert_array_equal(output.index, data[0].index)
     output = func(vars[0])
-    assert isinstance(output, np.float64) | isinstance(output, np.float64), type(output)
+    assert isinstance(output, float) | isinstance(output, np.float64), type(output)
     output = func(vars_float[0])
-    assert isinstance(output, np.float64) | isinstance(output, np.float64), type(output)
+    assert isinstance(output, float) | isinstance(output, np.float64), type(output)
 
     from gpquant.Function import _tan as func
 
@@ -116,9 +116,9 @@ if __name__ == "__main__":
     assert isinstance(output, pd.Series), type(output)
     np.testing.assert_array_equal(output.index, data[0].index)
     output = func(vars[0])
-    assert isinstance(output, np.float64) | isinstance(output, np.float64), type(output)
+    assert isinstance(output, float) | isinstance(output, np.float64), type(output)
     output = func(vars_float[0])
-    assert isinstance(output, np.float64) | isinstance(output, np.float64), type(output)
+    assert isinstance(output, float) | isinstance(output, np.float64), type(output)
 
     from gpquant.Function import _log as func
 
@@ -126,9 +126,9 @@ if __name__ == "__main__":
     assert isinstance(output, pd.Series), type(output)
     np.testing.assert_array_equal(output.index, data[0].index)
     output = func(vars[0])
-    assert isinstance(output, np.float64) | isinstance(output, np.float64), type(output)
+    assert isinstance(output, float) | isinstance(output, np.float64), type(output)
     output = func(vars_float[0])
-    assert isinstance(output, np.float64) | isinstance(output, np.float64), type(output)
+    assert isinstance(output, float) | isinstance(output, np.float64), type(output)
 
     from gpquant.Function import _sig as func
 
@@ -136,9 +136,9 @@ if __name__ == "__main__":
     assert isinstance(output, pd.Series), type(output)
     np.testing.assert_array_equal(output.index, data[0].index)
     output = func(vars[0])
-    assert isinstance(output, np.float64) | isinstance(output, np.float64), type(output)
+    assert isinstance(output, float) | isinstance(output, np.float64), type(output)
     output = func(vars_float[0])
-    assert isinstance(output, np.float64) | isinstance(output, np.float64), type(output)
+    assert isinstance(output, float) | isinstance(output, np.float64), type(output)
 
     # two param functions
     from gpquant.Function import _add as func
@@ -150,7 +150,7 @@ if __name__ == "__main__":
     assert isinstance(output, pd.Series), type(output)
     np.testing.assert_array_equal(output.index, data[0].index)
     output = func(vars_float[0], vars_float[1])
-    assert isinstance(output, np.float64) | isinstance(output, np.float64), type(output)
+    assert isinstance(output, float) | isinstance(output, np.float64), type(output)
 
     from gpquant.Function import _sub as func
 
@@ -164,7 +164,7 @@ if __name__ == "__main__":
     assert isinstance(output, pd.Series), type(output)
     np.testing.assert_array_equal(output.index, data[0].index)
     output = func(vars_float[0], vars_float[1])
-    assert isinstance(output, np.float64) | isinstance(output, np.float64), type(output)
+    assert isinstance(output, float) | isinstance(output, np.float64), type(output)
 
     from gpquant.Function import _mul as func
 
@@ -178,7 +178,7 @@ if __name__ == "__main__":
     assert isinstance(output, pd.Series), type(output)
     np.testing.assert_array_equal(output.index, data[0].index)
     output = func(vars_float[0], vars_float[1])
-    assert isinstance(output, np.float64) | isinstance(output, np.float64), type(output)
+    assert isinstance(output, float) | isinstance(output, np.float64), type(output)
 
     from gpquant.Function import _div as func
 
@@ -192,7 +192,7 @@ if __name__ == "__main__":
     assert isinstance(output, pd.Series), type(output)
     np.testing.assert_array_equal(output.index, data[0].index)
     output = func(vars_float[0], vars_float[1])
-    assert isinstance(output, np.float64) | isinstance(output, np.float64), type(output)
+    assert isinstance(output, float) | isinstance(output, np.float64), type(output)
 
     from gpquant.Function import _max as func
 
@@ -206,7 +206,7 @@ if __name__ == "__main__":
     assert isinstance(output, pd.Series), type(output)
     np.testing.assert_array_equal(output.index, data[0].index)
     output = func(vars_float[0], vars_float[1])
-    assert isinstance(output, np.float64) | isinstance(output, np.float64), type(output)
+    assert isinstance(output, float) | isinstance(output, np.float64), type(output)
 
     from gpquant.Function import _max as func
 
@@ -220,7 +220,7 @@ if __name__ == "__main__":
     assert isinstance(output, pd.Series), type(output)
     np.testing.assert_array_equal(output.index, data[0].index)
     output = func(vars_float[0], vars_float[1])
-    assert isinstance(output, np.float64) | isinstance(output, np.float64), type(output)
+    assert isinstance(output, float) | isinstance(output, np.float64), type(output)
 
     from gpquant.Function import _min as func
 
@@ -234,7 +234,7 @@ if __name__ == "__main__":
     assert isinstance(output, pd.Series), type(output)
     np.testing.assert_array_equal(output.index, data[0].index)
     output = func(vars_float[0], vars_float[1])
-    assert isinstance(output, np.float64) | isinstance(output, np.float64), type(output)
+    assert isinstance(output, float) | isinstance(output, np.float64), type(output)
 
     from gpquant.Function import _mean as func
 
@@ -248,7 +248,7 @@ if __name__ == "__main__":
     assert isinstance(output, pd.Series), type(output)
     np.testing.assert_array_equal(output.index, data[0].index)
     output = func(vars_float[0], vars_float[1])
-    assert isinstance(output, np.float64) | isinstance(output, np.float64), type(output)
+    assert isinstance(output, float) | isinstance(output, np.float64), type(output)
 
     # three params
     from gpquant.Function import _clear_by_cond as func

@@ -99,7 +99,6 @@ def _inv(x1):
             else:
                 return 0.0
 
-
 def _abs(x1):
     return np.abs(x1)
 
@@ -137,16 +136,25 @@ def _sig(x1):
     return 1 / (1 + np.exp(-x1))
 
 
-def _add(x1, x2) -> float | np.float64 | pd.Series:
-    return x1 + x2
+def _add(x1, x2):
+    if not isinstance(x1, pd.Series) and not isinstance(x2, pd.Series):
+        return np.nan
+    else:
+        return x1 + x2
 
 
 def _sub(x1, x2):
-    return x1 - x2
+    if not isinstance(x1, pd.Series) and not isinstance(x2, pd.Series):
+        return np.nan
+    else:
+        return x1 - x2
 
 
 def _mul(x1, x2):
-    return x1 * x2
+    if not isinstance(x1, pd.Series) and not isinstance(x2, pd.Series):
+        return np.nan
+    else:
+        return x1 * x2
 
 
 def _div(x1, x2):
@@ -165,15 +173,24 @@ def _div(x1, x2):
 
 
 def _max(x1, x2):
-    return np.maximum(x1, x2)
+    if not isinstance(x1, pd.Series) and not isinstance(x2, pd.Series):
+        return np.nan
+    else:
+        return np.maximum(x1, x2)
 
 
 def _min(x1, x2):
-    return np.minimum(x1, x2)
+    if not isinstance(x1, pd.Series) and not isinstance(x2, pd.Series):
+        return np.nan
+    else:
+        return np.minimum(x1, x2)
 
 
-def _mean(x1, x2):
-    return (x1 + x2) / 2
+def _mean(x1, x2) -> np.float64 | pd.Series | np.int64:
+    if not isinstance(x1, pd.Series) and not isinstance(x2, pd.Series):
+        return np.nan
+    else:
+        return (x1 + x2) / 2
 
 
 def _clear_by_cond(x1, x2, x3):
@@ -194,10 +211,10 @@ def _clear_by_cond(x1, x2, x3):
 
 
 def _if_then_else(x1, x2, x3):
+    """if x1 is nonzero (keep NaN), then x2, else x3"""
     if not isinstance(x1, pd.Series):
         return np.nan
 
-    """if x1 is nonzero (keep NaN), then x2, else x3"""
     values = np.where(x1, x2, np.where(~np.isnan(x1), x3, np.nan))
     return pd.Series(values, index=x1.index)
 
@@ -371,7 +388,10 @@ def _ts_median(x1, d: int):
 @cache_decorator()
 def _ts_midpoint(x1, d: int):
     """moving midpoint: (ts_max + ts_min) / 2"""
-    return (_ts_max(x1, d) + _ts_min(x1, d)) / 2.0
+    if isinstance(x1, pd.Series) and isinstance(d, np.int64):
+        return (_ts_max(x1, d) + _ts_min(x1, d)) / 2.0
+    else:
+        return np.nan
 
 
 @cache_decorator()
@@ -407,7 +427,10 @@ def _ts_kurt(x1, d: int):
 @cache_decorator()
 def _ts_inverse_cv(x1, d: int):
     """moving inverse of coefficient of variance"""
-    return _div(_ts_mean(x1, d), _ts_std(x1, d))
+    if isinstance(x1, pd.Series) and isinstance(d, np.int64):
+        return _div(_ts_mean(x1, d), _ts_std(x1, d))
+    else:
+        return np.nan
 
 
 @cache_decorator()
@@ -460,14 +483,21 @@ def _ts_corr(x1, x2, d: int):
 @cache_decorator()
 def _ts_autocorr(x1, d: int, i: int):
     """moving autocorrelation coefficient between x and x lag i period"""
-    x2 = _ts_delay(x1, i)
-    return _ts_corr(x1, x2, d)
+    if (
+        isinstance(x1, pd.Series)
+        and isinstance(d, np.int64)
+        and isinstance(i, np.int64)
+    ):
+        x2 = _ts_delay(x1, i)
+        return _ts_corr(x1, x2, d)
+    else:
+        return np.nan
 
 
 @cache_decorator()
 def _ts_maxmin(x1, d: int):
     """moving maxmin normalization"""
-    if isinstance(d, np.int64):
+    if isinstance(x1, pd.Series) and isinstance(d, np.int64):
         ts_max, ts_min = _ts_max(x1, d), _ts_min(x1, d)
         return _div(x1 - ts_min, ts_max - ts_min)
     else:
@@ -477,7 +507,7 @@ def _ts_maxmin(x1, d: int):
 @cache_decorator()
 def _ts_zscore(x1, d: int):
     """moving zscore standardization"""
-    if isinstance(d, np.int64):
+    if isinstance(x1, pd.Series) and isinstance(d, np.int64):
         return _div(x1 - _ts_mean(x1, d), _ts_std(x1, d))
     else:
         return np.nan
@@ -563,7 +593,10 @@ def _ts_argmin(x1, d: int):
 @cache_decorator()
 def _ts_argmaxmin(x1, d: int):
     """relative position of maximum x1 to minimum x1 in the last d datetimes"""
-    return _ts_argmax(x1, d) - _ts_argmin(x1, d)
+    if isinstance(x1, pd.Series) and isinstance(d, np.int64):
+        return _ts_argmax(x1, d) - _ts_argmin(x1, d)
+    else:
+        return np.nan
 
 
 @cache_decorator()
@@ -604,7 +637,7 @@ def _ts_ema(x1, d: int):
 @cache_decorator()
 def _ts_dema(x1, d: int):
     """double exponential moving average (DEMA): 2 * EMA(x1) - EMA(EMA(x1))"""
-    if isinstance(d, np.int64):
+    if isinstance(x1, pd.Series) and isinstance(d, np.int64):
         ema = _ts_ema(x1, d)
         return 2.0 * ema - _ts_ema(ema, d)
     else:

@@ -34,7 +34,7 @@ class Node:
     def __call__(self, X: pd.DataFrame, is_cached: bool = False):
         if isinstance(self.data, Function):
             fixed_var = [X[param] for param in self.data.fixed_params]
-            free_var = [node(X) for node in self.children]
+            free_var = [node(X, is_cached=is_cached) for node in self.children]
             return self.data(
                 *fixed_var, *free_var, cache_dir=self.cache_dir, is_cached=is_cached
             )
@@ -78,6 +78,7 @@ class SyntaxTree:
         parsimony_coefficient: float = 0,
         cache_dir: str = "./cache",
         seed: int = 32,
+        is_cached: bool = False,
     ) -> None:
         """
         @param id: tree id, the data in the parent node of root for locating it

@@ -33,25 +33,27 @@ def main(train_data, test_data):
     sr = SymbolicRegressor(
         population_size=100,
         tournament_size=20,
-        generations=3,
+        generations=5,
         stopping_criteria=2,
         p_crossover=0.6,
         p_subtree_mutate=0.2,
         p_hoist_mutate=0.1,
         p_point_mutate=0.05,
-        init_depth=(2, 3),
+        init_depth=(3, 5),
         init_method="half and half",
-        function_set=[],
+        function_set=['sin', 'cos', 'ts delay', 'ts skew', 'ts kama', 'ts zscore'],
         variable_set=[i for i in train_data.columns if i != 'label'],
         const_range=(1, 5),
-        ts_const_range=(1, 5),
+        ts_const_range=(5, 10),
         build_preference=[0.75, 0.75],
         metric="sectional ic",
         transformer=None,
         transformer_kwargs=None,
         parsimony_coefficient=0.005,
+        pool_size=1,
+        cache_dir='./cache',
     )
-    sr.fit(train_data.drop(columns=['label']), train_data["label"])
+    sr.fit(train_data.drop(columns=['label']), train_data["label"], is_cached=True)
     print(sr.score(test_data.drop(columns=['label']), test_data["label"]))
     return sr
 

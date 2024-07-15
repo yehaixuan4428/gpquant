@@ -20,21 +20,24 @@ class Function:
         # arguments forced to be certain variables
         self.fixed_params = [] if fixed_params is None else fixed_params
 
-    def __call__(self, *args, cache_dir: str = './cache', is_cached: bool = False):
+    def __call__(self, *args, cache_dir: str = "./cache", is_cached: bool = False):
         try:
             return self.function(*args, cache_dir=cache_dir, is_cached=is_cached)
         except TypeError:
-            return self.function(*args)
+            try:
+                return self.function(*args)
+            except:
+                print("Function final failed", self.name, *args)
 
 
 def __rolling(x1: pd.Series, d: int, function=None, **kwargs) -> np.ndarray:
     """auxiliary function, rolling more effectively than apply"""
-    try:
+    if isinstance(x1, pd.Series) and isinstance(d, np.int64):
         incomplete_w = np.lib.stride_tricks.sliding_window_view(x1.values, d)[..., ::-1]
         window = pd.DataFrame(
             np.vstack((np.full([d - 1, d], np.nan), incomplete_w)), index=x1.index
         )
-        try:
+        if function is not None:
             result = function(
                 window, **kwargs
             )  # add other arguments needed in function
@@ -42,9 +45,9 @@ def __rolling(x1: pd.Series, d: int, function=None, **kwargs) -> np.ndarray:
             #     result[i] = np.nan
             result[: d - 1] = np.nan
             return pd.Series(result, index=x1.index)
-        except:
+        else:
             return window
-    except:
+    else:
         return np.nan
 
 
@@ -98,6 +101,7 @@ def _inv(x1):
                 return 1.0 / x1
             else:
                 return 0.0
+
 
 def _abs(x1):
     return np.abs(x1)
@@ -230,13 +234,13 @@ def _if_cond_then_else(x1, x2, x3, x4):
     elif isinstance(x2, pd.Series):
         return pd.Series(values, index=x2.index)
     else:
-        '''disable invalid operation if all variables are float'''
+        """disable invalid operation if all variables are float"""
         return np.nan
 
 
 def _cs_count(x):
     if isinstance(x, pd.Series):
-        return x.groupby(level=0).transform('size')
+        return x.groupby(level=0).transform("size")
     return np.nan
 
 
@@ -619,14 +623,17 @@ def _ts_ema(x1, d: int):
     """exponential moving average (EMA)"""
     if isinstance(x1, pd.Series) and isinstance(d, np.int64):
         alpha = 2 / (d + 1)
-        # return __rolling(pd.Series(x1), d, function=__scalar_ema, alpha=alpha)
+
+        def func(x, d, alpha):
+            x = x.droplevel(1)
+            try:
+                return __rolling(x, d, function=__scalar_ema, alpha=alpha)
+            except:
+                return pd.Series(np.nan, index=x.index)
+
         return (
             x1.groupby(level=1)
-            .apply(
-                lambda x: __rolling(
-                    x.droplevel(1), d, function=__scalar_ema, alpha=alpha
-                )
-            )
+            .apply(lambda x: func(x, d, alpha))
             .swaplevel()
             .sort_index()
         )
@@ -665,16 +672,19 @@ def _ts_kama(x1, d1: int, d2: int, d3: int):
     ):
 
         def func(x1, d1, d2, d3):
-            d, f, s = (
-                d1,
-                1 / (1 + min(d2, d3)),
-                1 / (1 + max(d2, d3)),
-            )  # f should greater than s
-            change = np.abs(x1 - x1.shift(d))
-            volatility = (x1 - x1.shift()).abs().rolling(d, int(d / 2)).sum()
-            ER = _div(change, volatility)
-            SC = (ER * f + (1 - ER) * s) ** 2
-            return __rolling(x1, d, function=__scalar_ema, alpha=SC)
+            try:
+                d, f, s = (
+                    d1,
+                    1 / (1 + min(d2, d3)),
+                    1 / (1 + max(d2, d3)),
+                )  # f should greater than s
+                change = np.abs(x1 - x1.shift(d))
+                volatility = (x1 - x1.shift()).abs().rolling(d, int(d / 2)).sum()
+                ER = _div(change, volatility)
+                SC = (ER * f + (1 - ER) * s) ** 2
+                return __rolling(x1, d, function=__scalar_ema, alpha=SC)
+            except:
+                return pd.Series(np.nan, x1.index)
 
         return (
             x1.groupby(level=1)
@@ -812,7 +822,7 @@ if_cond_then_else4 = Function(
     function=_if_cond_then_else, name="if_cond_then_else", arity=4
 )
 
-cs_count1 = Function(function=_cs_count, name='cs_count', arity=1)
+cs_count1 = Function(function=_cs_count, name="cs_count", arity=1)
 
 # 3. time-series functions (time series arguments with time window, vectorized computation)
 # 3.1. difference

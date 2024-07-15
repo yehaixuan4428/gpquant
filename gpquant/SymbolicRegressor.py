@@ -38,10 +38,7 @@ class SymbolicRegressor:
         cache_dir: str = "./cache",
         pool_size: int = 1,
         best_n_children: int = 1,
-        seed: int = 32
     ) -> None:
-        self.seed = seed
-        random.seed(seed)
         os.makedirs(cache_dir, exist_ok=True)
         self.cache_dir: str = cache_dir
         self.pool_size = pool_size
@@ -96,7 +93,6 @@ class SymbolicRegressor:
                 transformer_kwargs,
                 parsimony_coefficient,
                 cache_dir,
-                seed
             ):
                 return SyntaxTree(
                     id,
@@ -112,7 +108,6 @@ class SymbolicRegressor:
                     transformer_kwargs,
                     parsimony_coefficient,
                     cache_dir,
-                    seed
                 )
 
             self.trees = Parallel(n_jobs=self.pool_size)(
@@ -130,7 +125,6 @@ class SymbolicRegressor:
                     self.transformer_kwargs,
                     self.parsimony_coefficient,
                     self.cache_dir,
-                    self.seed
                 )
                 for id in range(self.population_size)
             )
@@ -151,7 +145,6 @@ class SymbolicRegressor:
                         transformer_kwargs=self.transformer_kwargs,
                         parsimony_coefficient=self.parsimony_coefficient,
                         cache_dir=self.cache_dir,
-                        seed = self.seed
                     )
                 )
 

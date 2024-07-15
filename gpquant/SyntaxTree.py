@@ -44,7 +44,8 @@ class Node:
             return self.data
         else:
             # input except time-series constant must be a vector
-            return np.full(len(X), self.data)
+            # return np.full(len(X), self.data)
+            return pd.Series(self.data, index = X.index)
 
     def add_child(self, child: "Node"):
         # always insert to the front
@@ -77,8 +78,6 @@ class SyntaxTree:
         transformer_kwargs: dict = None,
         parsimony_coefficient: float = 0,
         cache_dir: str = "./cache",
-        seed: int = 32,
-        is_cached: bool = False,
     ) -> None:
         """
         @param id: tree id, the data in the parent node of root for locating it
@@ -109,9 +108,6 @@ class SyntaxTree:
         self.transformer_kwargs = transformer_kwargs
         self.parsimony_coefficient = parsimony_coefficient
         self.ttl_shift = 0  # int; sum of d as time-series constant
-        self.seed = seed
-
-        random.seed(seed)
 
         self.__build()
         self.nodes = self.__flatten()  # list; flattened tree

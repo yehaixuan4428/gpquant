@@ -77,7 +77,7 @@ class SyntaxTree:
         transformer_kwargs: dict = None,
         parsimony_coefficient: float = 0,
         cache_dir: str = "./cache",
-        seed: int = 32
+        seed: int = 32,
     ) -> None:
         """
         @param id: tree id, the data in the parent node of root for locating it
@@ -142,7 +142,7 @@ class SyntaxTree:
             # first, check if need to add time series constant
             ts_const_num = parent_stack[-1].data.is_ts
             while ts_const_num:
-                data = random.randint(*self.ts_const_range)
+                data = np.int64(random.randint(*self.ts_const_range))
                 node = Node(data, is_ts=True, cache_dir=self.cache_dir)
                 parent_stack[-1].add_child(node)
                 ts_const_num -= 1
@@ -170,7 +170,7 @@ class SyntaxTree:
                     node = Node(data, cache_dir=self.cache_dir)
                     parent_stack[-1].add_child(node)
                 else:
-                    data = random.randint(*self.const_range)
+                    data = np.int64(random.randint(*self.const_range))
                     node = Node(data, cache_dir=self.cache_dir)
                     parent_stack[-1].add_child(node)
                 children_stack[-1] -= 1
@@ -336,14 +336,14 @@ class SyntaxTree:
             new_node.children = new_node.children[::-1]
         elif mutation_node.is_ts:
             # time-series constant node mutation
-            replacement = random.randint(*self.ts_const_range)
+            replacement = np.int64(random.randint(*self.ts_const_range))
             new_node = Node(replacement, is_ts=True, cache_dir=self.cache_dir)
         else:
             # variable or constant node mutation
             if random.random() < self.build_preference[1]:
                 replacement = random.choice(self.variable_set)
             else:
-                replacement = random.randint(*self.const_range)
+                replacement = np.int64(random.randint(*self.const_range))
             new_node = Node(replacement, cache_dir=self.cache_dir)
         mutation_parent.chg_child(mutation_node, new_node)
         # update flatten tree

@@ -51,7 +51,7 @@ def __rolling(x1: pd.Series, d: int, function=None, **kwargs) -> np.ndarray:
 def __scalar_ema(window: pd.DataFrame, alpha: float) -> np.ndarray:
     """auxiliary function, calculating the ema of the last value in time-series"""
     try:
-        if isinstance(alpha == alpha, bool):  # alpha is a scalar
+        if isinstance(alpha == alpha, np.bool_):  # alpha is a scalar
             alpha_vec = np.broadcast_to(alpha, (window.shape[0], 1))
         else:  # alpha is a vector
             alpha_vec = np.broadcast_to(alpha, (1, len(alpha))).T
@@ -137,7 +137,7 @@ def _sig(x1):
     return 1 / (1 + np.exp(-x1))
 
 
-def _add(x1, x2):
+def _add(x1, x2) -> float | np.float64 | pd.Series:
     return x1 + x2
 
 
@@ -227,7 +227,7 @@ def _cs_count(x):
 def _ts_delay(x1, d: int):
     """x1 d datetimes ago"""
     # return pd.Series(x1).shift(d).values
-    if isinstance(x1, pd.Series) and (isinstance(d, int) or isinstance(d, np.int64)):
+    if isinstance(x1, pd.Series) and isinstance(d, np.int64):
         return x1.groupby(level=1, group_keys=False).shift(d)
     else:
         return np.nan
@@ -237,7 +237,7 @@ def _ts_delay(x1, d: int):
 def _ts_delta(x1, d: int):
     """difference between x1 and x1 d datetimes ago"""
     # return x1 - pd.Series(x1).shift(d).values
-    if isinstance(x1, pd.Series) and (isinstance(d, int) or isinstance(d, np.int64)):
+    if isinstance(x1, pd.Series) and isinstance(d, np.int64):
         return x1.groupby(level=1, group_keys=False).diff(d)
     else:
         return np.nan
@@ -247,7 +247,7 @@ def _ts_delta(x1, d: int):
 def _ts_pct_change(x1, d: int):
     """percentage change of x1 in the last d datetimes"""
     # return _div(_ts_delta(x1, d), x1) * np.sign(x1)
-    if isinstance(x1, pd.Series) and (isinstance(d, int) or isinstance(d, np.int64)):
+    if isinstance(x1, pd.Series) and isinstance(d, np.int64):
         return x1.groupby(level=1, group_keys=False).pct_change(d, fill_method=None)
     else:
         return np.nan
@@ -256,13 +256,16 @@ def _ts_pct_change(x1, d: int):
 @cache_decorator()
 def _ts_mean_return(x1, d: int):
     """moving average of percentage change of x1 with one lag"""
-    return _ts_mean(_ts_pct_change(x1, 1), d)
+    if isinstance(x1, pd.Series) and isinstance(d, np.int64):
+        return _ts_mean(_ts_pct_change(x1, np.int64(1)), d)
+    else:
+        return np.nan
 
 
 @cache_decorator()
 def _ts_max(x1, d: int):
     """maximum x1 in the last d datetimes"""
-    if isinstance(x1, pd.Series) and (isinstance(d, int) or isinstance(d, np.int64)):
+    if isinstance(x1, pd.Series) and isinstance(d, np.int64):
         return (
             x1.groupby(level=1, group_keys=False)
             .rolling(d, int(d / 2))
@@ -277,7 +280,7 @@ def _ts_max(x1, d: int):
 @cache_decorator()
 def _ts_min(x1, d: int):
     """minimum x1 in the last d datetimes"""
-    if isinstance(x1, pd.Series) and (isinstance(d, int) or isinstance(d, np.int64)):
+    if isinstance(x1, pd.Series) and isinstance(d, np.int64):
         return (
             x1.groupby(level=1, group_keys=False)
             .rolling(d, int(d / 2))
@@ -292,7 +295,7 @@ def _ts_min(x1, d: int):
 @cache_decorator()
 def _ts_sum(x1, d: int):
     """moving sum"""
-    if isinstance(x1, pd.Series) and (isinstance(d, int) or isinstance(d, np.int64)):
+    if isinstance(x1, pd.Series) and isinstance(d, np.int64):
         return (
             x1.groupby(level=1, group_keys=False)
             .rolling(d, int(d / 2))
@@ -307,7 +310,7 @@ def _ts_sum(x1, d: int):
 @cache_decorator()
 def _ts_product(x1, d: int):
     """moving product"""
-    if isinstance(x1, pd.Series) and (isinstance(d, int) or isinstance(d, np.int64)):
+    if isinstance(x1, pd.Series) and isinstance(d, np.int64):
         x1 = _log(x1)
         return np.exp(
             x1.groupby(level=1, group_keys=False)
@@ -323,7 +326,7 @@ def _ts_product(x1, d: int):
 @cache_decorator()
 def _ts_mean(x1, d: int):
     """moving average"""
-    if isinstance(x1, pd.Series) and (isinstance(d, int) or isinstance(d, np.int64)):
+    if isinstance(x1, pd.Series) and isinstance(d, np.int64):
         return (
             x1.groupby(level=1, group_keys=False)
             .rolling(d, int(d / 2))
@@ -338,7 +341,7 @@ def _ts_mean(x1, d: int):
 @cache_decorator()
 def _ts_std(x1, d: int):
     """moving standard deviation"""
-    if isinstance(x1, pd.Series) and (isinstance(d, int) or isinstance(d, np.int64)):
+    if isinstance(x1, pd.Series) and isinstance(d, np.int64):
         return (
             x1.groupby(level=1, group_keys=False)
             .rolling(d, int(d / 2))
@@ -353,7 +356,7 @@ def _ts_std(x1, d: int):
 @cache_decorator()
 def _ts_median(x1, d: int):
     """moving median"""
-    if isinstance(x1, pd.Series) and (isinstance(d, int) or isinstance(d, np.int64)):
+    if isinstance(x1, pd.Series) and isinstance(d, np.int64):
         return (
             x1.groupby(level=1, group_keys=False)
             .rolling(d, int(d / 2))
@@ -374,7 +377,7 @@ def _ts_midpoint(x1, d: int):
 @cache_decorator()
 def _ts_skew(x1, d: int):
     """moving skewness"""
-    if isinstance(x1, pd.Series) and (isinstance(d, int) or isinstance(d, np.int64)):
+    if isinstance(x1, pd.Series) and isinstance(d, np.int64):
         return (
             x1.groupby(level=1, group_keys=False)
             .rolling(d, int(d / 2))
@@ -389,7 +392,7 @@ def _ts_skew(x1, d: int):
 @cache_decorator()
 def _ts_kurt(x1, d: int):
     """moving kurtosis"""
-    if isinstance(x1, pd.Series) and (isinstance(d, int) or isinstance(d, np.int64)):
+    if isinstance(x1, pd.Series) and isinstance(d, np.int64):
         return (
             x1.groupby(level=1, group_keys=False)
             .rolling(d, int(d / 2))
@@ -413,7 +416,7 @@ def _ts_cov(x1, x2, d: int):
     if (
         isinstance(x1, pd.Series)
         and isinstance(x2, pd.Series)
-        and (isinstance(d, int) or isinstance(d, np.int64))
+        and isinstance(d, np.int64)
     ):
 
         def func(x, d):
@@ -437,7 +440,7 @@ def _ts_corr(x1, x2, d: int):
     if (
         isinstance(x1, pd.Series)
         and isinstance(x2, pd.Series)
-        and (isinstance(d, int) or isinstance(d, np.int64))
+        and isinstance(d, np.int64)
     ):
         # return pd.Series(x1).rolling(d, min_periods=int(d / 2)).corr(pd.Series(x2)).values
         def func(x, d):
@@ -464,7 +467,7 @@ def _ts_autocorr(x1, d: int, i: int):
 @cache_decorator()
 def _ts_maxmin(x1, d: int):
     """moving maxmin normalization"""
-    if isinstance(d, int) or isinstance(d, np.int64):
+    if isinstance(d, np.int64):
         ts_max, ts_min = _ts_max(x1, d), _ts_min(x1, d)
         return _div(x1 - ts_min, ts_max - ts_min)
     else:
@@ -474,7 +477,7 @@ def _ts_maxmin(x1, d: int):
 @cache_decorator()
 def _ts_zscore(x1, d: int):
     """moving zscore standardization"""
-    if isinstance(d, int) or isinstance(d, np.int64):
+    if isinstance(d, np.int64):
         return _div(x1 - _ts_mean(x1, d), _ts_std(x1, d))
     else:
         return np.nan
@@ -483,7 +486,11 @@ def _ts_zscore(x1, d: int):
 @cache_decorator()
 def _ts_regression_beta(x1, x2, d: int):
     """slope of regression x1 onto x2 in the last d datetimes"""
-    if isinstance(x1, pd.Series) and isinstance(x2, pd.Series) and (isinstance(d, int) or isinstance(d, np.int64)):
+    if (
+        isinstance(x1, pd.Series)
+        and isinstance(x2, pd.Series)
+        and isinstance(d, np.int64)
+    ):
         return _div(_ts_cov(x1, x2, d), _ts_std(x2, d) ** 2)
     else:
         return np.nan
@@ -492,7 +499,11 @@ def _ts_regression_beta(x1, x2, d: int):
 @cache_decorator()
 def _ts_regression_alpha(x1, x2, d: int):
     """slope of regression x1 onto x2 in the last d datetimes"""
-    if isinstance(x1, pd.Series) and isinstance(x2, pd.Series) and (isinstance(d, int) or isinstance(d, np.int64)):
+    if (
+        isinstance(x1, pd.Series)
+        and isinstance(x2, pd.Series)
+        and isinstance(d, np.int64)
+    ):
         return _ts_mean(x1, d) - _ts_mean(x2, d) * _ts_regression_beta(x1, x2, d)
     else:
         return np.nan
@@ -501,7 +512,7 @@ def _ts_regression_alpha(x1, x2, d: int):
 @cache_decorator()
 def _ts_linear_slope(x1, d: int):
     """slope of regression x1 in the last d datetimes onto (1, 2, ..., d)"""
-    if isinstance(x1, pd.Series) and (isinstance(d, int) or isinstance(d, np.int64)):
+    if isinstance(x1, pd.Series) and isinstance(d, np.int64):
         x2 = pd.Series(np.arange(len(x1)) + 1, index=x1.index)
         return _div(_ts_cov(x1, x2, d), _ts_std(x2, d) ** 2)
     else:
@@ -511,7 +522,7 @@ def _ts_linear_slope(x1, d: int):
 @cache_decorator()
 def _ts_linear_intercept(x1, d: int):
     """intercept of regression x1 in the last d datetimes onto (1, 2, ..., d)"""
-    if isinstance(x1, pd.Series) and (isinstance(d, int) or isinstance(d, np.int64)):
+    if isinstance(x1, pd.Series) and isinstance(d, np.int64):
         return _ts_mean(x1, d) - (1 + d) / 2 * _ts_linear_slope(x1, d)
     else:
         return np.nan
@@ -521,7 +532,7 @@ def _ts_linear_intercept(x1, d: int):
 def _ts_argmax(x1, d: int):
     """position of maximum x1 in the last d datetimes"""
     # return pd.Series(x1).rolling(d).apply(np.argmax, engine="numba", raw=True).values
-    if isinstance(x1, pd.Series) and (isinstance(d, int) or isinstance(d, np.int64)):
+    if isinstance(x1, pd.Series) and isinstance(d, np.int64):
         return (
             x1.groupby(level=1)
             .rolling(d, min_periods=int(d / 2))
@@ -537,7 +548,7 @@ def _ts_argmax(x1, d: int):
 def _ts_argmin(x1, d: int):
     """position of minimum x1 in the last d datetimes"""
     # return pd.Series(x1).rolling(d).apply(np.argmin, engine="numba", raw=True).values
-    if isinstance(x1, pd.Series) and (isinstance(d, int) or isinstance(d, np.int64)):
+    if isinstance(x1, pd.Series) and isinstance(d, np.int64):
         return (
             x1.groupby(level=1)
             .rolling(d, min_periods=int(d / 2))
@@ -558,7 +569,7 @@ def _ts_argmaxmin(x1, d: int):
 @cache_decorator()
 def _ts_rank(x1, d: int):
     """moving quantile of current x1"""
-    if isinstance(x1, pd.Series) and (isinstance(d, int) or isinstance(d, np.int64)):
+    if isinstance(x1, pd.Series) and isinstance(d, np.int64):
         return (
             x1.groupby(level=1)
             .rolling(d, min_periods=int(d / 2))
@@ -573,7 +584,7 @@ def _ts_rank(x1, d: int):
 @cache_decorator()
 def _ts_ema(x1, d: int):
     """exponential moving average (EMA)"""
-    if isinstance(x1, pd.Series) and (isinstance(d, int) or isinstance(d, np.int64)):
+    if isinstance(x1, pd.Series) and isinstance(d, np.int64):
         alpha = 2 / (d + 1)
         # return __rolling(pd.Series(x1), d, function=__scalar_ema, alpha=alpha)
         return (
@@ -593,7 +604,7 @@ def _ts_ema(x1, d: int):
 @cache_decorator()
 def _ts_dema(x1, d: int):
     """double exponential moving average (DEMA): 2 * EMA(x1) - EMA(EMA(x1))"""
-    if isinstance(d, int) or isinstance(d, np.int64):
+    if isinstance(d, np.int64):
         ema = _ts_ema(x1, d)
         return 2.0 * ema - _ts_ema(ema, d)
     else:
@@ -615,9 +626,9 @@ def _ts_kama(x1, d1: int, d2: int, d3: int):
     d = d1, f = 1 / (1 + d2), s = 1 / (1 + d3)"""
     if (
         isinstance(x1, pd.Series)
-        and (isinstance(d1, int) or isinstance(d1, np.int64))
-        and (isinstance(d2, int) or isinstance(d2, np.int64))
-        and (isinstance(d3, int) or isinstance(d3, np.int64))
+        and isinstance(d1, np.int64)
+        and isinstance(d2, np.int64)
+        and isinstance(d3, np.int64)
     ):
 
         def func(x1, d1, d2, d3):
@@ -646,7 +657,7 @@ def _ts_AROONOSC(high, low, d: int):
     """Aroon Oscillator: Aroon-up - Aroon-down
     Aroon-Up = (d - HH) * d (HH: number of datetimes ago the highest price occurred)
     Aroon-Down = (d - LL) * d (LL: number of datetimes ago the lowest price occurred)"""
-    if isinstance(d, int) or isinstance(d, np.int64):
+    if isinstance(d, np.int64):
         return (_ts_argmax(high, d) - _ts_argmin(low, d)) / d
     else:
         return np.nan
@@ -654,7 +665,7 @@ def _ts_AROONOSC(high, low, d: int):
 
 def _ts_WR(high, low, close, d: int):
     """Williams %R: (H_{d} - C) / (H_{d} - L_{d})"""
-    if isinstance(d, int) or isinstance(d, np.int64):
+    if isinstance(d, np.int64):
         return (_ts_max(high, d) - close) / (_ts_max(high, d) - _ts_min(low, d))
     else:
         return np.nan
@@ -666,7 +677,7 @@ def _ts_CCI(high, low, close, d: int):
     TP (Typical Price) = (High + Low + Close) / 3
     MA (Moving Average) = sum(TP) / d
     MD (Mean Deviation) = sum(abs(TP - MA)) / d"""
-    if isinstance(d, int) or isinstance(d, np.int64):
+    if isinstance(d, np.int64):
         TP = (high + low + close) / 3
         MA = _ts_mean(TP, d)
         MD = _ts_mean((TP - MA).abs(), d)
@@ -680,7 +691,7 @@ def _ts_ATR(high, low, close, d: int):
     """Average True Range: ts_mean(TR, d)
     TR (True Range) = max(High - Low, abs(High - previous Close), abs(Low - previous Close))
     """
-    if isinstance(d, int) or isinstance(d, np.int64):
+    if isinstance(d, np.int64):
         close_shift = close.groupby(level=1).shift()
         TR = np.maximum(high - low, high - close_shift, low - close_shift)
         return _ts_mean(TR, d)
@@ -690,7 +701,7 @@ def _ts_ATR(high, low, close, d: int):
 
 def _ts_NATR(high, low, close, d: int):
     """Normalized Average True Range: ATR / Close * 100"""
-    if isinstance(d, int) or isinstance(d, np.int64):
+    if isinstance(d, np.int64):
         return _ts_ATR(high, low, close, d) / close * 100
     else:
         return np.nan
@@ -704,7 +715,7 @@ def _ts_ADX(high, low, close, d: int):
     -DI (Directional Index) = ts_mean(-DM, d) / ATR * 100
     +DM (Directional Movement) = High - previous High
     -DM (Directional Movement) = Low - previous Low"""
-    if isinstance(d, int) or isinstance(d, np.int64):
+    if isinstance(d, np.int64):
         ATR = _ts_ATR(high, low, close, d)
         pDI = _div(_ts_mean(high - high.groupby(level=1).shift(), d), ATR)
         nDI = _div(_ts_mean(low - low.groupby(level=1).shift(), d), ATR)
@@ -723,7 +734,7 @@ def _ts_MFI(high, low, close, volume, d: int):
     NMF (Negative Money Flow) = RMF where TP < previous TP
     RMF (Raw Money Flow) = TP * Volume
     TP (Typical Price) = (High + Low + Close) / 3"""
-    if isinstance(d, int) or isinstance(d, np.int64):
+    if isinstance(d, np.int64):
         TP = (high + low + close) / 3
         pn = TP - TP.groupby(level=1).shift()
         RMF = TP * volume

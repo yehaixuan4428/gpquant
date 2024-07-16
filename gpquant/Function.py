@@ -733,7 +733,7 @@ def _ts_ATR(high, low, close, d: int):
     """
     if isinstance(d, np.int64):
         close_shift = close.groupby(level=1).shift()
-        TR = np.maximum(high - low, high - close_shift, low - close_shift)
+        TR = np.maximum(high - low, (high - close_shift).abs(), (low - close_shift).abs())
         return _ts_mean(TR, d)
     else:
         return np.nan

@@ -11,6 +11,7 @@ from .Function import function_map
 from .SyntaxTree import SyntaxTree
 from tqdm import tqdm
 from joblib import Parallel, delayed
+import time
 
 
 class SymbolicRegressor:
@@ -226,6 +227,7 @@ class SymbolicRegressor:
         is_cached: bool = False,
         continued: bool = False,
     ) -> None:
+        start_time = time.time()
         if not continued:
             self.last_best_fitness = None
             print("Build init trees...")
@@ -235,6 +237,9 @@ class SymbolicRegressor:
             print(f"best estimator: {self.best_estimator}")
             print(f"best fitness: {self.best_fitness}")
             print("------------------------")
+
+        print(f"Initialization cost {time.time() - start_time}s")
+        start_time = time.time()
 
         for i in range(self.generations):
             print(f"Calculate generation {i+1}...")
@@ -262,8 +267,6 @@ class SymbolicRegressor:
                     self.fitness < self.dead_threshold, np.nan, self.fitness
                 )
 
-            print("Generation fitnesses are calculated...")
-
             self.best_estimator = self.trees[
                 np.nanargmax(self.metric.sign * self.fitness)
             ]
@@ -290,11 +293,14 @@ class SymbolicRegressor:
                     )
                     < self.stopping_criteria
                 ):
+                    print(f"Fitting cost {time.time() - start_time}s...")
                     break
             self.last_best_fitness = self.best_fitness
             # if self.metric.sign * (self.best_fitness - self.stopping_criteria) > 0:
             #     break
             self.__evolve()
+            print(f"Generation {i+1} cost {time.time() - start_time}s...")
+            start_time = time.time()
 
     def predict(self, X: pd.DataFrame) -> Any:
         return self.best_estimator.execute(X)

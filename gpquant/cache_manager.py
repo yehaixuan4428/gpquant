@@ -137,9 +137,12 @@ class CacheManager:
         from .Function import _log
 
         def ts_product(data, d):
+            x = data.copy()
+            for col_name in x.columns:
+                x[col_name] = _log(x[col_name])
+
             factor = np.exp(
-                _log(data)
-                .groupby(level=1, group_keys=False)
+                x.groupby(level=1, group_keys=False)
                 .rolling(d, min_periods=int(d / 2))
                 .sum()
                 .droplevel(0)

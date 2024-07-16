@@ -168,7 +168,7 @@ class SyntaxTree:
                     parent_stack[-1].add_child(node)
                 else:
                     # data = np.int64(random.randint(*self.const_range))
-                    data = np.float64(random.uniform(*self.const_range))
+                    data = round(np.float64(random.uniform(*self.const_range)), 2)
                     node = Node(data, cache_dir=self.cache_dir)
                     parent_stack[-1].add_child(node)
                 children_stack[-1] -= 1
@@ -264,7 +264,8 @@ class SyntaxTree:
         # Because factor is calculated using price volume data, the valid data coverage should be high
         grouper = predict.groupby(level=0)
         ratio = (grouper.count() / grouper.size()).mean()
-        if ratio < 0.9:
+        avg_nunique = grouper.nunique().mean()
+        if ratio < 0.9 or avg_nunique < 50:
             return np.nan
 
         raw_fitness = self.metric(benchmark, predict)
@@ -351,7 +352,7 @@ class SyntaxTree:
                 replacement = random.choice(self.variable_set)
             else:
                 # replacement = np.int64(random.randint(*self.const_range))
-                replacement = np.float64(random.uniform(*self.const_range))
+                replacement = round(np.float64(random.uniform(*self.const_range)), 2)
 
             new_node = Node(replacement, cache_dir=self.cache_dir)
         mutation_parent.chg_child(mutation_node, new_node)

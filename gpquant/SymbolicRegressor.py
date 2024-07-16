@@ -38,6 +38,8 @@ class SymbolicRegressor:
         cache_dir: str = "./cache",
         pool_size: int = 1,
         fitness_threshold: float = None,
+        low_memory: bool = True,
+        dead_threshold: float = None,
     ) -> None:
         os.makedirs(cache_dir, exist_ok=True)
         self.cache_dir: str = cache_dir
@@ -75,6 +77,9 @@ class SymbolicRegressor:
         self.best_fitness: float = None
         self.fitness_threshold: float = fitness_threshold
         self.best_children_history: list[SyntaxTree] = []
+        self.low_memory = low_memory
+        self.generation_records = []
+        self.dead_threshold = dead_threshold
 
     def __build(self) -> None:
         if self.pool_size > 1:
@@ -189,6 +194,12 @@ class SymbolicRegressor:
             else:
                 # reproduction
                 offsprings.append(parent.reproduce())
+
+        if not self.low_memory:
+            self.generation_records.append(self.trees)
+        else:
+            self.generation_records = self.trees
+
         self.trees = offsprings
 
     def __log(self, i: int) -> None:
@@ -224,6 +235,11 @@ class SymbolicRegressor:
                     for tree in t
                     # delayed(func)(tree.fitness, X, y, str(tree.nodes[0]))
                     # for tree in t
+                )
+                self.fitness = np.array(self.fitness)
+            if self.dead_threshold is not None:
+                self.fitness = np.where(
+                    self.fitness < self.dead_threshold, np.nan, self.fitness
                 )
 
             print("Generation fitnesses are calculated...")

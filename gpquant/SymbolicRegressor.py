@@ -37,7 +37,7 @@ class SymbolicRegressor:
         parsimony_coefficient: float = 0,
         cache_dir: str = "./cache",
         pool_size: int = 1,
-        best_n_children: int = 1,
+        fitness_threshold: float = None,
     ) -> None:
         os.makedirs(cache_dir, exist_ok=True)
         self.cache_dir: str = cache_dir
@@ -73,7 +73,7 @@ class SymbolicRegressor:
         self.fitness: list[float] = []
         self.best_estimator: SyntaxTree = None
         self.best_fitness: float = None
-        self.best_n_children: int = min(best_n_children, population_size)
+        self.fitness_threshold: float = fitness_threshold
         self.best_children_history: list[SyntaxTree] = []
 
     def __build(self) -> None:
@@ -236,8 +236,7 @@ class SymbolicRegressor:
             )
             self.__log(i)
             # save the best n children into records
-            top_n = np.argsort(self.fitness)[-self.best_n_children :]
-            top_trees = [self.trees[i] for i in top_n]
+            top_trees = [self.trees[i] for i in len(self.fitness) if self.fitness[i] >= self.fitness_threshold]
             self.best_children_history.append(top_trees)
 
             if (

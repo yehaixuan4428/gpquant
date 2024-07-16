@@ -236,7 +236,11 @@ class SymbolicRegressor:
             )
             self.__log(i)
             # save the best n children into records
-            top_trees = [self.trees[i] for i in len(self.fitness) if self.fitness[i] >= self.fitness_threshold]
+            top_trees = [
+                self.trees[i]
+                for i in range(len(self.fitness))
+                if self.fitness[i] >= self.fitness_threshold
+            ]
             self.best_children_history.append(top_trees)
 
             if (

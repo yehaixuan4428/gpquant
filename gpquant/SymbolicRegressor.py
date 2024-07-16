@@ -156,6 +156,13 @@ class SymbolicRegressor:
     def __tournament(self) -> SyntaxTree:
         contenders = random.sample(range(self.population_size), self.tournament_size)
         fitness = [self.fitness[i] for i in contenders]
+
+        while np.isnan(fitness).all():
+            contenders = random.sample(
+                range(self.population_size), self.tournament_size
+            )
+            fitness = [self.fitness[i] for i in contenders]
+
         if self.metric.sign > 0:
             parent_index = contenders[np.nanargmax(fitness)]
         else:

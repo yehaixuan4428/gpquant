@@ -257,7 +257,12 @@ class SyntaxTree:
         """
         if self.metric is None:
             raise ValueError("metric must be set")
-        raw_fitness = self.metric(benchmark, self.execute(X, is_cached))
+
+        print(f"Tree {self.__str__()} start to predict")
+        predict = self.execute(X, is_cached)
+        print(f"Tree {self.__str__()} start to calc raw ic")
+        raw_fitness = self.metric(benchmark, predict)
+        print(f"Tree {self.__str__()} finished evaluation")
         penalty = self.parsimony_coefficient * len(self) * self.metric.sign
         return raw_fitness - penalty
 

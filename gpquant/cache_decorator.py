@@ -29,7 +29,7 @@ def cache_decorator():
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         def wrapper(
-            *args, cache_dir: str = './cache', is_cached: bool = False, **kwargs
+            *args, cache_dir: str = "./cache", is_cached: bool = False, **kwargs
         ) -> Any:
             # this is called in the top layer. So cache_dir exists
             # os.makedirs(cache_dir, exist_ok=True)
@@ -42,34 +42,52 @@ def cache_decorator():
                 else:
                     return hashlib.md5(str(arg).encode()).hexdigest()
 
-            args_hash = '-'.join(hash_arg(arg) for arg in args)
-            kwargs_hash = '-'.join(f"{k}:{hash_arg(v)}" for k, v in kwargs.items())
+            args_hash = "-".join(hash_arg(arg) for arg in args)
+            kwargs_hash = "-".join(f"{k}:{hash_arg(v)}" for k, v in kwargs.items())
 
             cache_key = f"{func.__name__}_{args_hash}_{kwargs_hash}"
             hash_key = hashlib.sha256(cache_key.encode()).hexdigest()
 
             cache_path = os.path.join(cache_dir, f"{hash_key}.pkl")
-            lock_path = os.path.join(cache_dir, f"{hash_key}.lock")
+            # lock_path = os.path.join(cache_dir, f"{hash_key}.lock")
+            if os.path.exists(cache_path):
+                try:
+                    with open(cache_path, "rb") as f:
+                        return pickle.load(f)
+                except:
+                    pass
 
-            with FileLock(lock_path):
-                if os.path.exists(cache_path):
-                    try:
-                        with open(cache_path, 'rb') as f:
-                            return pickle.load(f)
-                    except:
-                        pass
+            kwargs_without_cache_dir = {
+                k: v for k, v in kwargs.items() if k != "cache_dir"
+            }
 
-                kwargs_without_cache_dir = {
-                    k: v for k, v in kwargs.items() if k != 'cache_dir'
-                }
+            result = func(*args, **kwargs_without_cache_dir)
 
-                result = func(*args, **kwargs_without_cache_dir)
+            if isinstance(result, pd.Series) and is_cached:
+                with open(cache_path, "wb") as f:
+                    pickle.dump(result, f)
 
-                if isinstance(result, pd.Series) and is_cached:
-                    with open(cache_path, 'wb') as f:
-                        pickle.dump(result, f)
+            return result
 
-                return result
+            # with FileLock(lock_path):
+            #     if os.path.exists(cache_path):
+            #         try:
+            #             with open(cache_path, 'rb') as f:
+            #                 return pickle.load(f)
+            #         except:
+            #             pass
+
+            # kwargs_without_cache_dir = {
+            #     k: v for k, v in kwargs.items() if k != 'cache_dir'
+            # }
+
+            # result = func(*args, **kwargs_without_cache_dir)
+
+            # if isinstance(result, pd.Series) and is_cached:
+            #     with open(cache_path, 'wb') as f:
+            #         pickle.dump(result, f)
+
+            # return result
 
         return wrapper
 
@@ -86,9 +104,9 @@ if __name__ == "__main__":
     def add(x1, d):
         return x1 + d
 
-    data = pd.read_pickle('./data.pkl')
+    data = pd.read_pickle("./data.pkl")
     # print(add(data['close'], 2))
-    print(add(data['close'], data['open'], cache_dir='./cache'))
+    print(add(data["close"], data["open"], cache_dir="./cache"))
     # print(add(3, 2))
 
     # with Pool(processes=7) as pool:

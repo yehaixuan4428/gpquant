@@ -24,10 +24,7 @@ class Function:
         try:
             return self.function(*args, cache_dir=cache_dir, is_cached=is_cached)
         except TypeError:
-            try:
-                return self.function(*args)
-            except:
-                print("Function final failed", self.name, *args)
+            return self.function(*args)
 
 
 def __rolling(x1: pd.Series, d: int, function=None, **kwargs) -> np.ndarray:

@@ -219,10 +219,23 @@ class SymbolicRegressor:
             )
             print(f"best fitness improve: {error:.3%}")
 
-    def fit(self, X: pd.DataFrame, y: pd.Series, is_cached: bool = False) -> None:
-        self.last_best_fitness = None
-        print("Build init trees...")
-        self.__build()
+    def fit(
+        self,
+        X: pd.DataFrame,
+        y: pd.Series,
+        is_cached: bool = False,
+        continued: bool = False,
+    ) -> None:
+        if not continued:
+            self.last_best_fitness = None
+            print("Build init trees...")
+            self.__build()
+        else:
+            print(f"Model restarts from:")
+            print(f"best estimator: {self.best_estimator}")
+            print(f"best fitness: {self.best_fitness}")
+            print("------------------------")
+
         for i in range(self.generations):
             print(f"Calculate generation {i+1}...")
 
